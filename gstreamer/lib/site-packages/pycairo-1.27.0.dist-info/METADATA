@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: pycairo
+Version: 1.27.0
+Summary: Python interface for cairo
+Maintainer-Email: Christoph Reiter <reiter.christoph@gmail.com>
+License: LGPL-2.1-only OR MPL-1.1
+Project-URL: Homepage, https://pycairo.readthedocs.io
+Project-URL: Source, https://github.com/pygobject/pycairo
+Requires-Python: >=3.9

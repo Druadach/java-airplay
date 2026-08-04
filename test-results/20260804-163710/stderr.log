@@ -1,0 +1,9 @@
+0:00:48.604635600 11076 000001C7DDE082E0 FIXME                default gstutils.c:4170:gst_element_decorate_stream_id_internal:<h264-src> Creating random stream-id, consider implementing a deterministic way of creating a stream-id
+0:00:48.750428300 11076 000001C7DDE082E0 ERROR                  libav :0:: no frame!
+0:00:48.753868900 11076 000001C7DDE082E0 WARN            videodecoder gstvideodecoder.c:4800:_gst_video_decoder_error:<avdec_h264-0> error: Failed to send data for decoding
+0:00:48.757179200 11076 000001C7DDE082E0 WARN            videodecoder gstvideodecoder.c:4802:_gst_video_decoder_error:<avdec_h264-0> error: Invalid input packet
+0:00:51.531271600 11076 000001C7DDE082E0 ERROR                  libav :0:: no frame!
+0:00:51.534223900 11076 000001C7DDE082E0 WARN            videodecoder gstvideodecoder.c:4800:_gst_video_decoder_error:<avdec_h264-0> error: Failed to send data for decoding
+0:00:51.535035300 11076 000001C7DDE082E0 WARN            videodecoder gstvideodecoder.c:4802:_gst_video_decoder_error:<avdec_h264-0> error: Invalid input packet
+0:00:52.145241100 11076 000001C7E2E7A780 FIXME                default gstutils.c:4170:gst_element_decorate_stream_id_internal:<alac-src> Creating random stream-id, consider implementing a deterministic way of creating a stream-id
+0:00:52.151746800 11076 000001C7E42A45B0 FIXME                default gstutils.c:4170:gst_element_decorate_stream_id_internal:<aac-eld-src> Creating random stream-id, consider implementing a deterministic way of creating a stream-id
