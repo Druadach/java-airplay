@@ -82,10 +82,18 @@ try {
         throw "Reference-count tests failed with exit code $LASTEXITCODE"
     }
 
+    & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
+            com.github.serezhka.airplay.player.ffmpeg.FFmpegPlayerAudioRegressionTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "FFmpeg audio tests failed with exit code $LASTEXITCODE"
+    }
+
     $patchedServerJar = Join-Path $nestedJarDir 'server-1.0.6.jar'
     $patchedGstreamerJar = Join-Path $nestedJarDir 'gstreamer-1.0.6.jar'
+    $patchedFfmpegJar = Join-Path $nestedJarDir 'ffmpeg-1.0.6.jar'
     Copy-Item -LiteralPath (Join-Path $libraryDir 'server-1.0.6.jar') -Destination $patchedServerJar
     Copy-Item -LiteralPath (Join-Path $libraryDir 'gstreamer-1.0.6.jar') -Destination $patchedGstreamerJar
+    Copy-Item -LiteralPath (Join-Path $libraryDir 'ffmpeg-1.0.6.jar') -Destination $patchedFfmpegJar
 
     Push-Location $mainOutput
     try {
@@ -101,20 +109,28 @@ try {
         if ($LASTEXITCODE -ne 0) {
             throw "Could not patch gstreamer-1.0.6.jar (exit code $LASTEXITCODE)"
         }
+
+        & $jar --update --file $patchedFfmpegJar `
+                'com/github/serezhka/airplay/player/ffmpeg/FFmpegPlayer.class'
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not patch ffmpeg-1.0.6.jar (exit code $LASTEXITCODE)"
+        }
     } finally {
         Pop-Location
     }
 
     $serverEntry = 'BOOT-INF/lib/server-1.0.6.jar'
     $gstreamerEntry = 'BOOT-INF/lib/gstreamer-1.0.6.jar'
+    $ffmpegEntry = 'BOOT-INF/lib/ffmpeg-1.0.6.jar'
     [void][IO.Directory]::CreateDirectory((Join-Path $fatJarStage 'BOOT-INF\lib'))
     Copy-Item -LiteralPath $patchedServerJar -Destination (Join-Path $fatJarStage $serverEntry)
     Copy-Item -LiteralPath $patchedGstreamerJar -Destination (Join-Path $fatJarStage $gstreamerEntry)
+    Copy-Item -LiteralPath $patchedFfmpegJar -Destination (Join-Path $fatJarStage $ffmpegEntry)
     Copy-Item -LiteralPath $sourceJar -Destination $candidateJar
 
     Push-Location $fatJarStage
     try {
-        & $jar --update --file $candidateJar --no-compress $serverEntry $gstreamerEntry
+        & $jar --update --file $candidateJar --no-compress $serverEntry $gstreamerEntry $ffmpegEntry
         if ($LASTEXITCODE -ne 0) {
             throw "Could not patch executable JAR (exit code $LASTEXITCODE)"
         }
