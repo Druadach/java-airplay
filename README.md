@@ -10,18 +10,15 @@ This repository is a patched, self-contained Windows x64 distribution based on t
 GStreamer runtime, and the patched server JAR, so the package can be run without installing
 Java or GStreamer separately.
 
-Many thanks to the original
-author, [serezhka](https://github.com/serezhka), for creating and maintaining the Java AirPlay
-implementation.
+Many thanks to the original author, [serezhka](https://github.com/serezhka), for creating and
+maintaining the Java AirPlay implementation.
 
 ## Quick Start on Windows
 
-1. Keep <code>jre</code>, <code>gstreamer</code>, <code>application.properties</code>, and
-   <code>java-airplay-server-fixed.jar</code> in the same directory.
-2. Edit <code>application.properties</code> if the advertised AirPlay name or video settings
-   need to change.
-3. Double-click <code>run_airplay_server.bat</code>.
-4. Connect to the configured AirPlay name from a device on the same LAN.
+1. To change the AirPlay name, resolution, or frame rate, edit
+   <code>application.properties</code>. See the Configuration section for the available options.
+2. Double-click <code>run_airplay_server.bat</code>.
+3. Connect to the configured AirPlay name from a device on the same WiFi.
 
 The launcher configures the bundled Java and GStreamer paths automatically. Windows Firewall
 must allow the bundled Java process to accept the AirPlay control connection on port
@@ -40,7 +37,7 @@ Use <code>java-airplay-server-fixed.jar</code>; the original
 
 ## Configuration
 
-Create or edit <code>application.properties</code> in the package directory:
+Edit <code>application.properties</code> in the package directory:
 
 ~~~properties
 # Name shown in the AirPlay device list
@@ -55,6 +52,9 @@ airplay.fps=60
 player.implementation=gstreamer
 player.menu.enabled=true
 ~~~
+
+The maximum supported video resolution is 3840 x 2160 (4K) at 60 FPS. Adjust these settings
+based on the available network bandwidth.
 
 The GStreamer player supports video plus ALAC and AAC-ELD audio. FFmpeg mode uses FFplay for
 video and the same GStreamer audio pipeline, because AirPlay sends raw codec frames that FFplay
@@ -93,9 +93,9 @@ The script extracts the dependencies from the original JAR, compiles the patch s
 the RTP sequence, Netty reference-count, and FFmpeg audio-forwarding regression tests, and writes
 <code>java-airplay-server-fixed.jar</code>.
 
-For a production check, connect a real AirPlay sender and keep AAC-ELD audio playing for at
-least 15 minutes. That exceeds the complete 16-bit RTP sequence period and verifies both the
-wrap fix and the native-memory behavior.
+The FFmpeg audio path was verified with a real AirPlay sender using AAC-ELD 44.1 kHz stereo.
+For a longer production check, keep audio playing for at least 15 minutes. That exceeds the
+complete 16-bit RTP sequence period and verifies both the wrap fix and native-memory behavior.
 
 ## Demo
 
@@ -117,6 +117,7 @@ wrap fix and the native-memory behavior.
 The original project combines [java-airplay-lib](https://github.com/serezhka/java-airplay-lib),
 [java-airplay-server](https://github.com/serezhka/java-airplay-server), and
 [java-airplay-server-examples](https://github.com/serezhka/java-airplay-server-examples).
+
 Refer to the upstream repository for the full source build and the FFmpeg, VLC, and
 <code>h264-dump</code> player implementations.
 
