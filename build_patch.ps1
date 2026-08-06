@@ -83,6 +83,12 @@ try {
     }
 
     & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
+            com.github.serezhka.airplay.server.internal.handler.session.SessionMediaCoordinatorTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Session media takeover tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
             com.github.serezhka.airplay.player.ffmpeg.FFmpegPlayerAudioRegressionTest
     if ($LASTEXITCODE -ne 0) {
         throw "FFmpeg audio tests failed with exit code $LASTEXITCODE"
@@ -99,7 +105,15 @@ try {
     try {
         & $jar --update --file $patchedServerJar `
                 'com/github/serezhka/airplay/server/internal/handler/audio/AudioHandler.class' `
-                'com/github/serezhka/airplay/server/internal/handler/control/ControlHandler.class'
+                'com/github/serezhka/airplay/server/internal/handler/control/ControlHandler.class' `
+                'com/github/serezhka/airplay/server/internal/handler/control/RTSPHandler.class' `
+                'com/github/serezhka/airplay/server/internal/handler/session/SessionManager.class' `
+                'com/github/serezhka/airplay/server/internal/handler/session/SessionManager$Activation.class' `
+                'com/github/serezhka/airplay/server/internal/handler/session/SessionManager$ControlSession.class' `
+                'com/github/serezhka/airplay/server/internal/handler/session/SessionManager$MediaLease.class' `
+                'com/github/serezhka/airplay/server/internal/handler/session/SessionAirPlayConsumer.class' `
+                'com/github/serezhka/airplay/server/internal/handler/session/SessionAirPlayConsumer$StreamKind.class' `
+                'com/github/serezhka/airplay/server/internal/handler/session/SessionMediaCoordinator.class'
         if ($LASTEXITCODE -ne 0) {
             throw "Could not patch server-1.0.6.jar (exit code $LASTEXITCODE)"
         }
@@ -117,6 +131,12 @@ try {
         }
     } finally {
         Pop-Location
+    }
+
+    & $java -cp "$testOutput;$patchedServerJar;$libraryDir\*" `
+            com.github.serezhka.airplay.server.internal.handler.session.SessionMediaCoordinatorTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Packaged session media takeover tests failed with exit code $LASTEXITCODE"
     }
 
     $serverEntry = 'BOOT-INF/lib/server-1.0.6.jar'

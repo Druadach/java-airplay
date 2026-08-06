@@ -38,6 +38,8 @@ public abstract class GstPlayer implements AirPlayConsumer {
     private final AppSrc alacSrc;
     private final AppSrc aacEldSrc;
 
+    private final Object videoPipelineLock = new Object();
+
     private AudioStreamInfo.CompressionType audioCompressionType;
 
     public GstPlayer() {
@@ -60,17 +62,24 @@ public abstract class GstPlayer implements AirPlayConsumer {
 
     @Override
     public void onVideoFormat(VideoStreamInfo videoStreamInfo) {
-        h264Pipeline.play();
+        synchronized (videoPipelineLock) {
+            h264Pipeline.stop();
+            h264Pipeline.play();
+        }
     }
 
     @Override
     public void onVideo(byte[] bytes) {
-        h264Src.pushBuffer(createBuffer(bytes));
+        synchronized (videoPipelineLock) {
+            h264Src.pushBuffer(createBuffer(bytes));
+        }
     }
 
     @Override
     public void onVideoSrcDisconnect() {
-        h264Pipeline.stop();
+        synchronized (videoPipelineLock) {
+            h264Pipeline.stop();
+        }
     }
 
     @Override
