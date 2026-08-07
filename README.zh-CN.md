@@ -49,7 +49,7 @@ airplay.fps=30
 改完需要重启软件（关掉黑窗口，重新双击 `.bat`）。
 
 **想关掉软件？**
-直接关闭黑色命令行窗口。
+右键系统托盘图标并选择 `Quit`，或直接关闭黑色命令行窗口。
 
 ---
 
@@ -63,6 +63,7 @@ airplay.width=1920                # 画面宽度
 airplay.height=1080               # 画面高度
 airplay.fps=60                    # 每秒帧数
 player.implementation=gstreamer   # 播放方式，支持 gstreamer、ffmpeg、vlc、h264-dump
+player.gstreamer.fullscreen=false # GStreamer 模式是否全屏
 player.tray.enabled=true          # 是否显示系统托盘图标
 ```
 
@@ -79,7 +80,18 @@ player.tray.enabled=true          # 是否显示系统托盘图标
 - **VLC**：要求 VLC 已加入 PATH。
 - **h264-dump**：将视频流写入 <code>dump.h264</code>。
 
-### FFmpeg
+### GStreamer 窗口/全屏模式切换
+
+设置以下选项可启用无标题栏全屏：
+
+```properties
+player.gstreamer.fullscreen=true
+```
+
+投屏时，视频窗口会覆盖主显示器且不显示标题栏。要恢复原来的普通窗口，改为
+`player.gstreamer.fullscreen=false`。修改后需要重启服务才会生效。
+
+### 使用 FFmpeg 模式
 
 #### 前置条件
 
@@ -180,6 +192,8 @@ $env:GST_PLUGIN_PATH = "$PWD/gstreamer/lib/gstreamer-1.0"
 - RTP 音频序列号按无符号 16 位处理，正确处理 `65535 -> 0` 回绕。
 - 有界重排序窗口，避免单个 UDP 丢包导致音频永久静音。
 - GStreamer 音视频缓冲在 `map()` 成功后、推送下游前必定 `unmap()`。
+- GStreamer 全屏模式使用 Direct3D 11 原生 sink 的无边框全屏属性，关闭该选项时仍使用自动选择的视频 sink。
+- 托盘 `Quit` 在后台执行 Spring 清理；超过 500 毫秒会强制结束进程，避免 Bonjour 注销阻塞导致窗口延迟关闭。
 - `ControlHandler` 中释放已消费的 Netty `FullHttpRequest`，
   消除 Netty leak detector 报告的 HTTP 缓冲泄漏。
 - FFmpeg 模式下 FFplay 负责低延迟 H.264 视频，
@@ -198,7 +212,7 @@ Set-Location C:/path/to/Druadach-java-airplay
 ```
 
 脚本会从原始 JAR 提取依赖、编译补丁源码，运行 RTP 序列号、Netty 引用计数、
-FFmpeg 音频转发、抢占式会话接管四组回归测试，并输出
+FFmpeg 音频转发、抢占式会话接管、GStreamer 全屏配置、托盘退出六组回归测试，并输出
 `java-airplay-server-fixed.jar`。
 
 FFmpeg 音频路径已用真实 AirPlay 发送端以 AAC-ELD 44.1 kHz 立体声验证。

@@ -42,8 +42,15 @@ echo Gstreamer 路径: %GSTREAMER_PATH%
 echo ========================================
 
 REM 启动 AirPlay 服务器
-"%JAVA_HOME%\bin\java.exe" -jar "%CURRENT_DIR%java-airplay-server-fixed.jar"
+"%JAVA_HOME%\bin\java.exe" -jar "%CURRENT_DIR%java-airplay-server-fixed.jar" --spring.config.additional-location="file:%CURRENT_DIR%application.properties"
+set "SERVER_EXIT_CODE=%ERRORLEVEL%"
 
 echo.
-echo 服务器已停止
+if "%SERVER_EXIT_CODE%"=="0" (
+    echo 服务器已停止
+    exit /b 0
+)
+
+echo 服务器异常停止，退出代码: %SERVER_EXIT_CODE%
 pause
+exit /b %SERVER_EXIT_CODE%

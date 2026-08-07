@@ -47,7 +47,7 @@ airplay.fps=30
 After modifying the file, you must restart the software (close the command prompt window and double-click `.bat` again).
 
 **How to close the application?**
-Simply close the black command prompt window directly.
+Right-click the system tray icon and select `Quit`, or close the black command prompt window directly.
 
 ---
 
@@ -61,6 +61,7 @@ airplay.width=1920                # Screen width
 airplay.height=1080               # Screen height
 airplay.fps=60                    # Frames per second (higher = smoother, but uses more resources)
 player.implementation=gstreamer   # Player backend (gstreamer and ffmpeg are verified working)
+player.gstreamer.fullscreen=false # Use borderless fullscreen with GStreamer
 player.tray.enabled=true          # Enable or disable system tray icon
 ```
 
@@ -76,6 +77,17 @@ The highest profile verified in this build is **3840 × 2160 @ 60 FPS**.
 - **FFmpeg**: Uses `ffplay` from `Path` to play H.264/HEVC and uses GStreamer for audio.
 - **VLC**: Requires VLC to be available on `Path`.
 - **h264-dump**: Writes the video stream to `dump.h264`.
+
+### GStreamer Borderless Fullscreen
+
+Enable borderless fullscreen with this option:
+
+```properties
+player.gstreamer.fullscreen=true
+```
+
+The video window covers the primary display without a title bar while mirroring. Set
+`player.gstreamer.fullscreen=false` to restore the original windowed mode. Restart the server after changing this option.
 
 ### FFmpeg
 
@@ -176,6 +188,8 @@ The service listens on port `5001` for control connections; media ports are assi
 - **RTP Audio Sequence Number:** Treated sequence numbers as unsigned 16-bit integers to correctly handle the `65535 -> 0` rollover.
 - **Audio Jitter Buffer:** Implemented a bounded reordering window to prevent single UDP packet drops from causing permanent audio muting.
 - **GStreamer Memory Safety:** Ensured `unmap()` is strictly called on GStreamer audio/video buffers after a successful `map()`, prior to downstream pushing.
+- **GStreamer Fullscreen:** Uses the native Direct3D 11 sink's borderless fullscreen property while retaining automatic sink selection in windowed mode.
+- **System Tray Quit:** Performs Spring cleanup in the background and forces process termination after 500 ms so a blocked Bonjour shutdown cannot keep the application windows open.
 - **Netty Buffer Leak:** Released consumed `FullHttpRequest` objects in `ControlHandler`, resolving HTTP buffer leaks reported by Netty leak detector.
 - **FFmpeg Audio Mode:** Configured FFplay to handle low-latency H.264 video, while forwarding raw ALAC / AAC-ELD audio streams to the internal GStreamer decoder and audio sink.
 - **Preemptive Session Hijacking:** On device switch, immediately revokes the previous device's control connection generation and media lease, drops late audio/video frames and delayed TEARDOWN requests, and synchronously resets the GStreamer H.264 decoding pipeline to eliminate reference frame corruption.
@@ -191,7 +205,7 @@ Set-Location C:/path/to/Druadach-java-airplay
 ./build_patch.ps1
 ```
 
-The script extracts dependencies from the original JAR, compiles the patch source code, runs four regression test suites (RTP sequence numbers, Netty reference counting, FFmpeg audio forwarding, and preemptive session takeover), and outputs `java-airplay-server-fixed.jar`.
+The script extracts dependencies from the original JAR, compiles the patch source code, runs six regression test suites (RTP sequence numbers, Netty reference counting, FFmpeg audio forwarding, preemptive session takeover, GStreamer fullscreen configuration, and system tray quit), and outputs `java-airplay-server-fixed.jar`.
 
 The FFmpeg audio path has been verified with a real AirPlay sender transmitting AAC-ELD 44.1 kHz stereo audio. For production environments, continuous audio playback for >15 minutes is recommended to exceed a full 16-bit RTP sequence cycle, validating both rollover fixes and native memory stability.
 

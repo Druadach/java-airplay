@@ -28,21 +28,39 @@ $mainOutput = Join-Path $patchTempRoot 'classes-main'
 $testOutput = Join-Path $patchTempRoot 'classes-test'
 $nestedJarDir = Join-Path $patchTempRoot 'nested'
 $fatJarStage = Join-Path $patchTempRoot 'fat-stage'
+$appClassesDir = Join-Path $patchTempRoot 'app-classes'
 $candidateJar = Join-Path $patchTempRoot 'java-airplay-server-fixed.jar'
 
 try {
-    foreach ($directory in @($libraryDir, $mainOutput, $testOutput, $nestedJarDir, $fatJarStage)) {
+    foreach ($directory in @($libraryDir, $mainOutput, $testOutput, $nestedJarDir, $fatJarStage, $appClassesDir)) {
         [void][IO.Directory]::CreateDirectory($directory)
     }
 
     $outerJar = [IO.Compression.ZipFile]::OpenRead($sourceJar)
     try {
         foreach ($entry in $outerJar.Entries) {
-            if ($entry.FullName -notlike 'BOOT-INF/lib/*.jar') {
+            if ($entry.FullName -like 'BOOT-INF/lib/*.jar') {
+                $target = Join-Path $libraryDir ([IO.Path]::GetFileName($entry.FullName))
+                $sourceStream = $entry.Open()
+                $targetStream = [IO.File]::Create($target)
+                try {
+                    $sourceStream.CopyTo($targetStream)
+                } finally {
+                    $targetStream.Dispose()
+                    $sourceStream.Dispose()
+                }
                 continue
             }
 
-            $target = Join-Path $libraryDir ([IO.Path]::GetFileName($entry.FullName))
+            $appClassesPrefix = 'BOOT-INF/classes/'
+            if (-not $entry.FullName.StartsWith($appClassesPrefix) -or $entry.FullName.EndsWith('/')) {
+                continue
+            }
+
+            $relativePath = $entry.FullName.Substring($appClassesPrefix.Length).Replace(
+                    '/', [IO.Path]::DirectorySeparatorChar)
+            $target = Join-Path $appClassesDir $relativePath
+            [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target))
             $sourceStream = $entry.Open()
             $targetStream = [IO.File]::Create($target)
             try {
@@ -58,14 +76,15 @@ try {
 
     $mainSources = @(Get-ChildItem -LiteralPath $mainSourceRoot -Recurse -Filter '*.java' |
             ForEach-Object FullName)
-    & $javac --release 17 -encoding UTF-8 -cp "$libraryDir\*" -d $mainOutput $mainSources
+    & $javac --release 17 -parameters -encoding UTF-8 `
+            -cp "$appClassesDir;$libraryDir\*" -d $mainOutput $mainSources
     if ($LASTEXITCODE -ne 0) {
         throw "Main source compilation failed with exit code $LASTEXITCODE"
     }
 
     $testSources = @(Get-ChildItem -LiteralPath $testSourceRoot -Recurse -Filter '*.java' |
             ForEach-Object FullName)
-    & $javac --release 17 -encoding UTF-8 -cp "$mainOutput;$libraryDir\*" -d $testOutput $testSources
+    & $javac --release 17 -encoding UTF-8 -cp "$mainOutput;$appClassesDir;$libraryDir\*" -d $testOutput $testSources
     if ($LASTEXITCODE -ne 0) {
         throw "Test source compilation failed with exit code $LASTEXITCODE"
     }
@@ -94,6 +113,27 @@ try {
         throw "FFmpeg audio tests failed with exit code $LASTEXITCODE"
     }
 
+    & $java -cp "$testOutput;$mainOutput;$appClassesDir;$libraryDir\*" `
+            com.github.serezhka.airplay.player.gstreamer.GstFullscreenConfigurationTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "GStreamer fullscreen tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $java -cp "$testOutput;$mainOutput;$appClassesDir;$libraryDir\*" `
+            com.github.serezhka.airplay.app.menu.SystemTrayMenuQuitTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "System tray quit tests failed with exit code $LASTEXITCODE"
+    }
+
+    foreach ($probe in @('normal-process-probe', 'blocked-process-probe',
+            'production-timeout-process-probe')) {
+        & $java -cp "$testOutput;$mainOutput;$appClassesDir;$libraryDir\*" `
+                com.github.serezhka.airplay.app.menu.SystemTrayMenuQuitTest $probe
+        if ($LASTEXITCODE -ne 0) {
+            throw "System tray quit process probe '$probe' failed with exit code $LASTEXITCODE"
+        }
+    }
+
     $patchedServerJar = Join-Path $nestedJarDir 'server-1.0.6.jar'
     $patchedGstreamerJar = Join-Path $nestedJarDir 'gstreamer-1.0.6.jar'
     $patchedFfmpegJar = Join-Path $nestedJarDir 'ffmpeg-1.0.6.jar'
@@ -119,7 +159,9 @@ try {
         }
 
         & $jar --update --file $patchedGstreamerJar `
-                'com/github/serezhka/airplay/player/gstreamer/GstPlayer.class'
+                'com/github/serezhka/airplay/player/gstreamer/GstPlayer.class' `
+                'com/github/serezhka/airplay/player/gstreamer/GstPlayerFullscreen.class' `
+                'com/github/serezhka/airplay/player/gstreamer/GstVideoPipeline.class'
         if ($LASTEXITCODE -ne 0) {
             throw "Could not patch gstreamer-1.0.6.jar (exit code $LASTEXITCODE)"
         }
@@ -142,15 +184,49 @@ try {
     $serverEntry = 'BOOT-INF/lib/server-1.0.6.jar'
     $gstreamerEntry = 'BOOT-INF/lib/gstreamer-1.0.6.jar'
     $ffmpegEntry = 'BOOT-INF/lib/ffmpeg-1.0.6.jar'
+    $playerConfigEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/app/config/PlayerConfig.class'
+    $systemTrayMenuEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/app/menu/SystemTrayMenu.class'
     [void][IO.Directory]::CreateDirectory((Join-Path $fatJarStage 'BOOT-INF\lib'))
+    [void][IO.Directory]::CreateDirectory(
+            (Join-Path $fatJarStage 'BOOT-INF\classes\com\github\serezhka\airplay\app\config'))
+    [void][IO.Directory]::CreateDirectory(
+            (Join-Path $fatJarStage 'BOOT-INF\classes\com\github\serezhka\airplay\app\menu'))
     Copy-Item -LiteralPath $patchedServerJar -Destination (Join-Path $fatJarStage $serverEntry)
     Copy-Item -LiteralPath $patchedGstreamerJar -Destination (Join-Path $fatJarStage $gstreamerEntry)
     Copy-Item -LiteralPath $patchedFfmpegJar -Destination (Join-Path $fatJarStage $ffmpegEntry)
+    Copy-Item -LiteralPath (Join-Path $mainOutput 'com\github\serezhka\airplay\app\config\PlayerConfig.class') `
+            -Destination (Join-Path $fatJarStage $playerConfigEntry)
+    Copy-Item -LiteralPath (Join-Path $mainOutput 'com\github\serezhka\airplay\app\menu\SystemTrayMenu.class') `
+            -Destination (Join-Path $fatJarStage $systemTrayMenuEntry)
+
+    $stagedAppClasses = Join-Path $fatJarStage 'BOOT-INF\classes'
+    & $java -cp "$testOutput;$stagedAppClasses;$patchedGstreamerJar;$appClassesDir;$libraryDir\*" `
+            com.github.serezhka.airplay.player.gstreamer.GstFullscreenConfigurationTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Packaged GStreamer fullscreen tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $java -cp "$testOutput;$stagedAppClasses;$patchedGstreamerJar;$appClassesDir;$libraryDir\*" `
+            com.github.serezhka.airplay.app.menu.SystemTrayMenuQuitTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Packaged system tray quit tests failed with exit code $LASTEXITCODE"
+    }
+
+    foreach ($probe in @('normal-process-probe', 'blocked-process-probe',
+            'production-timeout-process-probe')) {
+        & $java -cp "$testOutput;$stagedAppClasses;$patchedGstreamerJar;$appClassesDir;$libraryDir\*" `
+                com.github.serezhka.airplay.app.menu.SystemTrayMenuQuitTest $probe
+        if ($LASTEXITCODE -ne 0) {
+            throw "Packaged system tray quit process probe '$probe' failed with exit code $LASTEXITCODE"
+        }
+    }
+
     Copy-Item -LiteralPath $sourceJar -Destination $candidateJar
 
     Push-Location $fatJarStage
     try {
-        & $jar --update --file $candidateJar --no-compress $serverEntry $gstreamerEntry $ffmpegEntry
+        & $jar --update --file $candidateJar --no-compress `
+                $serverEntry $gstreamerEntry $ffmpegEntry $playerConfigEntry $systemTrayMenuEntry
         if ($LASTEXITCODE -ne 0) {
             throw "Could not patch executable JAR (exit code $LASTEXITCODE)"
         }
