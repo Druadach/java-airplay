@@ -1,147 +1,167 @@
 # Java AirPlay Server
 
-[![GitHub release](https://img.shields.io/github/v/release/serezhka/java-airplay)](https://github.com/serezhka/java-airplay/releases)
-[![build](https://github.com/serezhka/java-airplay/actions/workflows/build.yaml/badge.svg)](https://github.com/serezhka/java-airplay/actions/workflows/build.yaml)
-![ViewCount](https://views.whatilearened.today/views/github/serezhka/java-airplay.svg)
+English | [简体中文](README.zh-CN.md)
+
+[![GitHub release](https://img.shields.io/github/v/release/Druadach/java-airplay)](https://github.com/Druadach/java-airplay/releases)
+[![build](https://github.com/Druadach/java-airplay/actions/workflows/build.yaml/badge.svg)](https://github.com/Druadach/java-airplay/actions/workflows/build.yaml)
+![ViewCount](https://views.whatilearened.today/views/github/Druadach/java-airplay.svg)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](http://opensource.org/licenses/MIT)
 
-This repository is a patched, self-contained Windows x64 distribution based on the
-[java-airplay](https://github.com/serezhka/java-airplay) project. It includes a bundled JRE,
-GStreamer runtime, and the patched server JAR, so the package can be run without installing
-Java or GStreamer separately.
+This software allows you to mirror iPhone, iPad, and Mac screens to a Windows PC, supporting up to 4K @ 60 FPS.
 
-Many thanks to the original author, [serezhka](https://github.com/serezhka), for creating and
-maintaining the Java AirPlay implementation.
+This project is modified based on the original project [serezhka/java-airplay](https://github.com/serezhka/java-airplay) by [serezhka](https://github.com/serezhka). All required runtime components (Java Runtime Environment and GStreamer playback components) are pre-packaged. No additional installation is required—just download and run out of the box.
 
-## Quick Start on Windows
+---
 
-1. Edit <code>application.properties</code> to change the AirPlay name, resolution, or frame rate. See the Configuration section for the available options.
-2. Double-click <code>run_airplay_server.bat</code> to start Airplay Server.
-3. Connect to the configured AirPlay name from a device on the same WiFi.
+## 1. Quick Start in 3 Steps
 
-The launcher configures the bundled Java and GStreamer paths automatically. Windows Firewall
-must allow the bundled Java process to accept the AirPlay control connection on port
-<code>5001</code> and the dynamically advertised media ports.
+1. **Change AirPlay Server Name (Optional)**
+   Open `application.properties` with Notepad and change `Mukar` in `airplay.serverName=Mukar`.
 
-To start the server from PowerShell instead:
+2. **Launch**
+   Double-click `run_airplay_server.bat`.
+   A black command prompt window will pop up. **This is normal; do not close it.** Closing it will shut down the software.
 
-~~~powershell
+3. **Connect from Apple Devices**
+   Ensure your mobile device/Mac and PC are connected to the same Wi-Fi network → Open "Control Center" → Tap "Screen Mirroring" → Select your AirPlay server name.
+
+> **Note:** On the first run, Windows Firewall will display a security prompt. **Please click "Allow access."** If denied, AirPlay will not be able to discover this PC.
+
+---
+
+## 2. Frequently Asked Questions (FAQ)
+
+**Cannot find the PC on my Apple device?**
+- Are the phone and PC on the exact same Wi-Fi network? (Note: 2.4 GHz and 5 GHz networks are sometimes isolated under different SSIDs).
+- Is the black command prompt window still running?
+- Did you click "Allow" on the Windows Firewall prompt during the first launch? If you accidentally clicked "Cancel," you need to manually allow it in Windows Firewall settings or reinstall the app.
+- "AP Isolation" on corporate or hotel Wi-Fi networks blocks device-to-device discovery. In such cases, try using a mobile hotspot or PC hotspot instead.
+
+**Laggy or stuttering playback?**
+This is typically caused by poor router signals. You can lower the resolution and frame rate in `application.properties` to reduce bandwidth pressure:
+```properties
+airplay.width=1280
+airplay.height=720
+airplay.fps=30
+```
+After modifying the file, you must restart the software (close the command prompt window and double-click `.bat` again).
+
+**How to close the application?**
+Simply close the black command prompt window directly.
+
+---
+
+## 3. Configuration Settings
+
+Open `application.properties` with Notepad to edit settings. **Changes will only take effect after restarting the software.**
+
+```properties
+airplay.serverName=Mukar          # Device name visible on sender devices
+airplay.width=1920                # Screen width
+airplay.height=1080               # Screen height
+airplay.fps=60                    # Frames per second (higher = smoother, but uses more resources)
+player.implementation=gstreamer   # Player backend (gstreamer and ffmpeg are verified working)
+player.tray.enabled=true          # Enable or disable system tray icon
+```
+
+**Regarding Resolution and Frame Rate:**
+These three parameters only **declare to the sender what the AirPlay receiver supports**. The actual stream quality is determined by the AirPlay sender device; the server itself does not perform downscaling or transcoding.
+The highest profile verified in this build is **3840 × 2160 @ 60 FPS**.
+
+---
+
+## 4. Fixes in This Release
+
+This version resolves several issues present in the upstream release:
+
+- **Audio dropouts after a few minutes** — Fixed.
+- **Audio loss following minor network jitter** — Fixed; audio now recovers automatically.
+- **Increasing memory usage over time** — Fixed three native/heap memory leak instances.
+- **Complete silence in FFmpeg mode** — Fixed.
+- **Green screen / video artifacts when Device B interrupts Device A's stream** — Fixed; switching devices now cleanly resets the rendering pipeline.
+
+*(For technical details, see the "For Developers" section below.)*
+
+---
+
+## 5. Demo Videos
+
+- Raspberry Pi 4B, 1280×720 / 24 FPS: [Watch](https://youtu.be/uRvgVkLWfSI)
+- Windows Laptop, 1920×1080 / 30 FPS: [Watch](https://youtu.be/RT1hVWGJzos)
+
+---
+
+## 6. For Developers
+
+<details>
+<summary>Expand: PowerShell Launch, Player Options, Recompilation, and Technical Details</summary>
+
+### Launch via PowerShell
+
+```powershell
 $env:PATH = "$PWD/jre/bin;$PWD/gstreamer/bin;$env:PATH"
 $env:GST_PLUGIN_PATH = "$PWD/gstreamer/lib/gstreamer-1.0"
 ./jre/bin/java.exe -jar ./java-airplay-server-fixed.jar
-~~~
+```
 
-Use <code>java-airplay-server-fixed.jar</code>; the original
-<code>java-airplay-server.jar</code> is kept only as a reference and fallback copy.
+Please use `java-airplay-server-fixed.jar`. The original `java-airplay-server.jar` is kept as a reference and fallback backup.
 
-## Configuration
+The service listens on port `5001` for control connections; media ports are assigned dynamically.
 
-Edit <code>application.properties</code> in the package directory:
+### Player Implementations (`player.implementation`)
 
-~~~properties
-# Name shown in the AirPlay device list
-airplay.serverName=Mukar
-
-# Display capabilities advertised to AirPlay senders
-airplay.width=1920
-airplay.height=1080
-airplay.fps=60
-
-# Player: gstreamer, ffmpeg, vlc, or h264-dump
-player.implementation=gstreamer
-player.tray.enabled=true
-~~~
-
-### Video Capabilities and Limits
-
-The <code>airplay.width</code>, <code>airplay.height</code>, and
-<code>airplay.fps</code> values describe the receiver to the AirPlay sender. They do not resize,
-transcode, or force the sender to use the requested mode.
-
-| Parameter | Support in this build |
+| Value | Description |
 | --- | --- |
-| Mirroring codec | H.264/AVC byte stream, access-unit aligned, with BT.709 caps |
-| Default advertised mode | 1920 x 1080, up to 60 FPS; the refresh rate is advertised as 60 Hz |
-| Code-enforced maximum | None. Width, height, and FPS are signed 32-bit integers passed through without range validation; use positive values. |
-| Highest verified AirPlay mode | 3840 x 2160 (4K) at 60 FPS |
-| Bundled-decoder check | H.264 High Profile Level 5.2 at 3840 x 2160 and 60 FPS is accepted by the GStreamer pipeline |
-| Above 4K at 60 FPS | Not verified or guaranteed |
-| Bitrate, H.264 profile, and level | Not configurable or capped by the server; the sender and active player/decoder determine compatibility |
+| `gstreamer` | **Default.** Video + ALAC / AAC-ELD audio, using the bundled runtime. |
+| `ffmpeg` | Uses `ffplay` on system PATH for video; audio is still routed through GStreamer (FFplay cannot directly consume raw AirPlay streams). |
+| `vlc` | Requires VLC installed on system PATH. |
+| `h264-dump` | Dumps raw video stream to `dump.h264`. |
 
-The bundled GStreamer decoder does not expose a fixed resolution, frame-rate, H.264 profile, or
-level ceiling. The highest mode verified with this build is 4K at 60 FPS; sustained performance
-still depends on the sender, display, host hardware, and network. Treat higher settings as
-experimental and test them with the intended setup.
+### Video Capabilities and Limitations
 
-The GStreamer player supports video plus ALAC and AAC-ELD audio. FFmpeg mode uses FFplay for
-video and the same GStreamer audio pipeline, because AirPlay sends raw codec frames that FFplay
-cannot consume directly. A compatible GStreamer installation is required when using another
-installation instead of the bundled runtime.
+| Item | Status in this Build |
+| --- | --- |
+| Mirroring Codec | H.264/AVC byte-stream, access-unit aligned, BT.709 caps |
+| Default Announcement | 1920×1080, max 60 FPS, refresh rate declared as 60 Hz |
+| Code-level Limit | None. Width/Height/FPS are signed 32-bit integers passed directly without range checks; use positive values. |
+| Highest Verified Mode | 3840×2160 (4K) @ 60 FPS |
+| Decoder Validation | H.264 High Profile Level 5.2 @ 3840×2160 60 FPS accepted by GStreamer pipeline |
+| Beyond 4K 60 FPS | Unverified; not guaranteed |
+| Bitrate / Profile / Level | Not limited or enforced by server; determined by sender and player backend |
 
-## Fixes in This Build
+### Technical Details of Fixes
 
-- **Sound no longer disappears after several minutes.** RTP audio sequence numbers are handled
-  as unsigned 16-bit values, including the <code>65535 -> 0</code> wrap.
-- **Sound can recover after a brief network packet loss.** A bounded reorder window prevents one
-  lost UDP packet from muting the stream indefinitely.
-- **Memory usage no longer grows with every audio or video buffer.** GStreamer audio and video
-  buffers always call <code>unmap()</code> after a successful <code>map()</code>, before the
-  buffer is pushed downstream.
-- **Long-running AirPlay sessions no longer leak control-request memory.** Consumed Netty
-  <code>FullHttpRequest</code> objects are released in <code>ControlHandler</code>, preventing
-  the HTTP buffer leak reported by Netty's leak detector.
-- **FFmpeg mode now plays audio.** FFplay continues to handle the low-latency H.264 video while
-  ALAC and AAC-ELD audio are forwarded to the bundled GStreamer decoder and audio sink.
-- **Device preemptive takeover no longer causes green screens or corrupted video.** Starting a new
-  AirPlay session from Device B now immediately revokes Device A's control connection generation and media
-  leases, drops any late video/audio frames or delayed TEARDOWN requests from Device A, and resets the
-  GStreamer H.264 decoding pipeline under lock synchronization to avoid reference-frame pollution.
+- **RTP Audio Sequence Number:** Treated sequence numbers as unsigned 16-bit integers to correctly handle the `65535 -> 0` rollover.
+- **Audio Jitter Buffer:** Implemented a bounded reordering window to prevent single UDP packet drops from causing permanent audio muting.
+- **GStreamer Memory Safety:** Ensured `unmap()` is strictly called on GStreamer audio/video buffers after a successful `map()`, prior to downstream pushing.
+- **Netty Buffer Leak:** Released consumed `FullHttpRequest` objects in `ControlHandler`, resolving HTTP buffer leaks reported by Netty leak detector.
+- **FFmpeg Audio Mode:** Configured FFplay to handle low-latency H.264 video, while forwarding raw ALAC / AAC-ELD audio streams to the internal GStreamer decoder and audio sink.
+- **Preemptive Session Hijacking:** On device switch, immediately revokes the previous device's control connection generation and media lease, drops late audio/video frames and delayed TEARDOWN requests, and synchronously resets the GStreamer H.264 decoding pipeline to eliminate reference frame corruption.
 
-The fixes are implemented in <code>patch-src</code>. The packaged result is generated by
-<code>build_patch.ps1</code>.
+Patch sources are located in `patch-src`. The build artifacts are generated via `build_patch.ps1`.
 
-## Rebuild and Test
+### Recompilation and Testing
 
-The bundled JDK is used to compile the patch; no network access or external build tool is
-required:
+Compile using the bundled JDK (no internet access or external build tools required):
 
-~~~powershell
+```powershell
 Set-Location C:/path/to/Druadach-java-airplay
 ./build_patch.ps1
-~~~
+```
 
-The script extracts the dependencies from the original JAR, compiles the patch sources, runs
-the RTP sequence, Netty reference-count, FFmpeg audio-forwarding, and preemptive session takeover
-regression tests, and writes <code>java-airplay-server-fixed.jar</code>.
+The script extracts dependencies from the original JAR, compiles the patch source code, runs four regression test suites (RTP sequence numbers, Netty reference counting, FFmpeg audio forwarding, and preemptive session takeover), and outputs `java-airplay-server-fixed.jar`.
 
-The FFmpeg audio path was verified with a real AirPlay sender using AAC-ELD 44.1 kHz stereo.
-For a longer production check, keep audio playing for at least 15 minutes. That exceeds the
-complete 16-bit RTP sequence period and verifies both the wrap fix and native-memory behavior.
+The FFmpeg audio path has been verified with a real AirPlay sender transmitting AAC-ELD 44.1 kHz stereo audio. For production environments, continuous audio playback for >15 minutes is recommended to exceed a full 16-bit RTP sequence cycle, validating both rollover fixes and native memory stability.
 
-## Demo
+</details>
 
-- Raspberry Pi 4 Model B, 1280 x 720 at 24 fps:
-  [video](https://youtu.be/uRvgVkLWfSI)
-- Windows laptop, 1920 x 1080 at 30 fps:
-  [video](https://youtu.be/RT1hVWGJzos)
+---
 
-## Player Options
+## Upstream Projects and Licensing
 
-- **GStreamer**: supports video plus ALAC and AAC-ELD audio. The bundled runtime is used by
-  this Windows package.
-- **FFmpeg**: uses <code>ffplay</code> on PATH for video and GStreamer for ALAC/AAC-ELD audio.
-- **VLC**: requires VLC on PATH.
-- **h264-dump**: writes the video stream to <code>dump.h264</code>.
+Upstream repository structure:
+- [java-airplay-lib](https://github.com/serezhka/java-airplay-lib)
+- [java-airplay-server](https://github.com/serezhka/java-airplay-server)
+- [java-airplay-server-examples](https://github.com/serezhka/java-airplay-server-examples)
 
-## Upstream Project
-
-The original project combines [java-airplay-lib](https://github.com/serezhka/java-airplay-lib),
-[java-airplay-server](https://github.com/serezhka/java-airplay-server), and
-[java-airplay-server-examples](https://github.com/serezhka/java-airplay-server-examples).
-
-Refer to the upstream repository for the full source build and the FFmpeg, VLC, and
-<code>h264-dump</code> player implementations.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+License: MIT. See [LICENSE](LICENSE) for details.
