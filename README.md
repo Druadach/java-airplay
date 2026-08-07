@@ -70,11 +70,18 @@ The highest profile verified in this build is **3840 × 2160 @ 60 FPS**.
 
 ---
 
-## 4. Using FFmpeg Mode (Optional)
+## 4. Player Options (Optional)
+
+- **GStreamer**: Uses the bundled runtime to play H.264, HEVC Main 10/HDR, ALAC, and AAC-ELD.
+- **FFmpeg**: Uses `ffplay` from `Path` to play H.264/HEVC and uses GStreamer for audio.
+- **VLC**: Requires VLC to be available on `Path`.
+- **h264-dump**: Writes the video stream to `dump.h264`.
+
+### FFmpeg
+
+#### Prerequisites
 
 FFmpeg mode uses the `ffplay` executable for low-latency H.264 video playback. Audio continues to use the bundled GStreamer runtime because AirPlay sends raw ALAC / AAC-ELD audio streams that `ffplay` cannot consume directly.
-
-### Prerequisites
 
 Install a [Windows FFmpeg](https://ffmpeg.org/) build that includes both `ffmpeg.exe` and `ffplay.exe`, then add the build's `bin` directory to the Windows `Path` environment variable. For example, if FFmpeg is extracted to `C:\ffmpeg`, add:
 
@@ -91,7 +98,7 @@ where.exe ffplay
 
 The commands should print the FFmpeg version and the full path to `ffplay.exe`. If `ffplay` is not recognized, the `bin` directory is not on `Path`, or the downloaded build does not include `ffplay.exe`.
 
-### Enable FFmpeg playback
+#### Enable FFmpeg playback
 
 1. Open `application.properties`.
 2. Change the player implementation:

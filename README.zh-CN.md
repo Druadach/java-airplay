@@ -72,11 +72,18 @@ player.tray.enabled=true          # 是否显示系统托盘图标
 
 ---
 
-## 四、使用 FFmpeg 模式（可选）
+## 四、播放器选项（可选）
+
+- **GStreamer**：使用捆绑运行时播放 H.264、HEVC Main 10/HDR、ALAC 和 AAC-ELD。
+- **FFmpeg**：使用 PATH 中的 <code>ffplay</code> 播放 H.264/HEVC，并使用 GStreamer 播放音频。
+- **VLC**：要求 VLC 已加入 PATH。
+- **h264-dump**：将视频流写入 <code>dump.h264</code>。
+
+### FFmpeg
+
+#### 前置条件
 
 FFmpeg 模式使用 `ffplay` 播放低延迟 H.264 视频。音频仍然使用项目内置的 GStreamer，因为 AirPlay 发送的是裸 ALAC / AAC-ELD 音频码流，`ffplay` 不能直接消费这种输入。
-
-### 前置条件
 
 安装包含 `ffmpeg.exe` 和 `ffplay.exe` 的 [Windows FFmpeg](https://ffmpeg.org/) 版本，然后把其中的 `bin` 目录加入 Windows 的 `Path` 环境变量。例如 FFmpeg 解压到 `C:\ffmpeg` 时，加入：
 
@@ -93,7 +100,7 @@ where.exe ffplay
 
 命令应当输出 FFmpeg 版本以及 `ffplay.exe` 的完整路径。如果提示找不到 `ffplay`，说明 `bin` 目录没有加入 `Path`，或者下载的版本没有包含 `ffplay.exe`。
 
-### 启用 FFmpeg 播放
+#### 启用 FFmpeg 播放
 
 1. 打开 `application.properties`。
 2. 修改播放器配置：
