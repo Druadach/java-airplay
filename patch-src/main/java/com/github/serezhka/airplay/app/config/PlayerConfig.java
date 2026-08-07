@@ -1,5 +1,7 @@
 package com.github.serezhka.airplay.app.config;
 
+import com.github.serezhka.airplay.app.control.LocalControlServer;
+import com.github.serezhka.airplay.app.lifecycle.ApplicationShutdown;
 import com.github.serezhka.airplay.app.menu.SystemTrayMenu;
 import com.github.serezhka.airplay.player.ffmpeg.FFmpegPlayer;
 import com.github.serezhka.airplay.player.gstreamer.GstPlayerFullscreen;
@@ -55,11 +57,26 @@ public class PlayerConfig {
     }
 
     @Bean
+    public ApplicationShutdown applicationShutdown(ApplicationContext context) {
+        return new ApplicationShutdown(context);
+    }
+
+    @Bean
     @ConditionalOnProperty(value = "player.tray.enabled", havingValue = "true")
     public SystemTrayMenu systemTrayMenu(
-            ApplicationContext context,
+            ApplicationShutdown applicationShutdown,
             AirPlayConsumer airPlayConsumer) {
-        return new SystemTrayMenu(context, airPlayConsumer);
+        return new SystemTrayMenu(applicationShutdown, airPlayConsumer);
+    }
+
+    @Bean
+    @ConditionalOnProperty(value = "launcher.control.enabled", havingValue = "true")
+    public LocalControlServer localControlServer(
+            @Value("${launcher.control.port:0}") int port,
+            @Value("${launcher.control.token:}") String token,
+            ApplicationShutdown applicationShutdown,
+            AirPlayConsumer airPlayConsumer) {
+        return new LocalControlServer(port, token, applicationShutdown, airPlayConsumer);
     }
 
     @Bean

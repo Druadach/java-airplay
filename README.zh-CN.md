@@ -15,12 +15,11 @@
 
 ## 一、3 步开始使用
 
-1. **修改 AirPlay 服务器名字（可选）**
-   用记事本打开 `application.properties`，修改 `airplay.serverName=Mukar` 里的 `Mukar`
+1. **打开启动器**
+   双击 `run_airplay_gui.bat`。启动器使用项目内置 Java，不会弹出命令行窗口。
 
-2. **启动**
-   双击 `run_airplay_server.bat`。
-   会弹出一个黑色命令行窗口，**这是正常的，不要关掉**，关掉就等于关闭软件。
+2. **配置并启动**
+   可在窗口顶部随时切换“中文 / English”。设置服务名称、分辨率、帧率、播放器和启动显示模式；修改会自动保存，然后点击“启动”。每个宽度和高度候选都会标注对应的分辨率档位 `1K / 2K / 2.5K / 4K`（例如 `3840 (4K)`、`2160 (4K)`），也可直接键盘输入自定义数值。状态变为“运行中”后即可投屏。
 
 3. **在苹果设备上连接**
    确认手机和电脑连的是同一个 WiFi → 打开"控制中心" → 点击"屏幕镜像" → 选择 AirPlay 服务器名字。
@@ -28,13 +27,16 @@
 第一次启动时，Windows 会弹出防火墙提示，**请点击“允许”**。
 如果不允许，AirPlay 会搜不到这台电脑。
 
+原有的 `run_airplay_server.bat` 命令行启动方式继续保留。它读取同一个 `application.properties`，并可继续使用服务端原有托盘菜单。
+服务端口通常无需调整，因此 GUI 不显示该字段；需要修改时可编辑 `application.properties` 中的 `airplay.airtunesPort`。
+
 ---
 
 ## 二、常见问题
 
 **手机上搜不到电脑？**
 - 手机和电脑是否连的是同一个 WiFi（注意 2.4G 和 5G 有时是两个不同的网络名）？
-- 黑色命令行窗口是否还开着？
+- GUI 启动器是否显示服务“运行中”，或命令行服务窗口是否仍然打开？
 - 首次启动的防火墙提示是否点了"允许"？如果误点了"取消"，需要到
   Windows 防火墙设置里手动放行，或者卸载重装。
 - 公司网络、酒店 WiFi的"AP 隔离"功能会阻止设备互相发现，这种情况下换成电脑或手机热点试试。
@@ -46,10 +48,10 @@ airplay.width=1280
 airplay.height=720
 airplay.fps=30
 ```
-改完需要重启软件（关掉黑窗口，重新双击 `.bat`）。
+改完后在 GUI 中重启服务，或重新启动命令行服务。
 
 **想关掉软件？**
-右键系统托盘图标并选择 `Quit`，或直接关闭黑色命令行窗口。
+右键启动器托盘图标并选择“退出”。命令行模式可使用服务端托盘的 `Quit`，或关闭命令行窗口。
 
 ---
 
@@ -59,12 +61,14 @@ airplay.fps=30
 
 ```properties
 airplay.serverName=Mukar          # AirPlay 服务器名
+airplay.airtunesPort=5001         # AirPlay 控制端口
 airplay.width=1920                # 画面宽度
 airplay.height=1080               # 画面高度
 airplay.fps=60                    # 每秒帧数
 player.implementation=gstreamer   # 播放方式，支持 gstreamer、ffmpeg、vlc、h264-dump
 player.gstreamer.fullscreen=false # GStreamer 模式是否全屏
 player.tray.enabled=true          # 是否显示系统托盘图标
+launcher.language=zh-CN           # GUI 语言：zh-CN 或 en-US
 ```
 
 关于分辨率和帧率的说明：
@@ -125,7 +129,7 @@ where.exe ffplay
    player.implementation=ffmpeg
    ```
 
-3. 保存文件，然后双击 `run_airplay_server.bat` 重启服务。
+3. 保存文件并在 GUI 中重启，或双击 `run_airplay_server.bat` 重启命令行服务。
 4. 在 iPhone、iPad 或 Mac 上使用“屏幕镜像”连接。投屏后会打开 FFplay 全屏视频窗口，投屏期间请保持该窗口和服务器黑色命令行窗口处于打开状态。
 
 如果要恢复默认的内置播放器，把配置改回 `player.implementation=gstreamer` 并重启服务。
@@ -215,9 +219,8 @@ Set-Location C:/path/to/Druadach-java-airplay
 ./build_patch.ps1
 ```
 
-脚本会从原始 JAR 提取依赖、编译补丁源码，运行 RTP 序列号、Netty 引用计数、
-FFmpeg 音频转发、抢占式会话接管、GStreamer 全屏配置、托盘退出六组回归测试，并输出
-`java-airplay-server-fixed.jar`。
+脚本会从原始 JAR 提取依赖，编译服务端补丁和 Swing 启动器，在源码和成品布局下运行服务端回归测试，并运行启动器核心测试与成品安装校验，最后输出
+`java-airplay-server-fixed.jar` 和 `java-airplay-launcher.jar`。
 
 FFmpeg 音频路径已用真实 AirPlay 发送端以 AAC-ELD 44.1 kHz 立体声验证。
 生产环境建议连续播放音频 15 分钟以上，这超过完整的 16 位 RTP 序列周期，

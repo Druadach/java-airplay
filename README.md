@@ -15,17 +15,19 @@ This project is modified based on the original project [serezhka/java-airplay](h
 
 ## 1. Quick Start in 3 Steps
 
-1. **Change AirPlay Server Name (Optional)**
-   Open `application.properties` with Notepad and change `Mukar` in `airplay.serverName=Mukar`.
+1. **Open the Launcher**
+   Double-click `run_airplay_gui.bat`. The launcher uses the bundled Java runtime and does not open a command prompt window.
 
-2. **Launch**
-   Double-click `run_airplay_server.bat`.
-   A black command prompt window will pop up. **This is normal; do not close it.** Closing it will shut down the software.
+2. **Configure and Start**
+   Switch between `中文` and `English` from the top of the window at any time. Set the server name, resolution, frame rate, player, and startup display mode; changes are saved automatically. Then click `Start`. Each width and height choice is labeled with its resolution tier (`1K / 2K / 2.5K / 4K`, for example, `3840 (4K)` and `2160 (4K)`) and remains editable for custom keyboard input. The status changes to `Running` when AirPlay is ready.
 
 3. **Connect from Apple Devices**
    Ensure your mobile device/Mac and PC are connected to the same Wi-Fi network → Open "Control Center" → Tap "Screen Mirroring" → Select your AirPlay server name.
 
 > **Note:** On the first run, Windows Firewall will display a security prompt. **Please click "Allow access."** If denied, AirPlay will not be able to discover this PC.
+
+The original `run_airplay_server.bat` command-line launcher remains available. It reads the same `application.properties` file and keeps the server's legacy tray menu enabled when configured.
+The server port rarely needs adjustment, so it is hidden from the GUI. Edit `airplay.airtunesPort` in `application.properties` when a custom port is required.
 
 ---
 
@@ -33,7 +35,7 @@ This project is modified based on the original project [serezhka/java-airplay](h
 
 **Cannot find the PC on my Apple device?**
 - Are the phone and PC on the exact same Wi-Fi network? (Note: 2.4 GHz and 5 GHz networks are sometimes isolated under different SSIDs).
-- Is the black command prompt window still running?
+- Does the GUI launcher show the service as running, or is the command-line server window still open?
 - Did you click "Allow" on the Windows Firewall prompt during the first launch? If you accidentally clicked "Cancel," you need to manually allow it in Windows Firewall settings or reinstall the app.
 - "AP Isolation" on corporate or hotel Wi-Fi networks blocks device-to-device discovery. In such cases, try using a mobile hotspot or PC hotspot instead.
 
@@ -44,10 +46,10 @@ airplay.width=1280
 airplay.height=720
 airplay.fps=30
 ```
-After modifying the file, you must restart the software (close the command prompt window and double-click `.bat` again).
+After changing the values, restart the service from the GUI or restart the command-line server.
 
 **How to close the application?**
-Right-click the system tray icon and select `Quit`, or close the black command prompt window directly.
+Right-click the launcher tray icon and select `Exit`. In command-line mode, use the server tray's `Quit` item or close its command prompt window.
 
 ---
 
@@ -57,12 +59,14 @@ Open `application.properties` with Notepad to edit settings. **Changes will only
 
 ```properties
 airplay.serverName=Mukar          # Device name visible on sender devices
+airplay.airtunesPort=5001         # AirPlay control port
 airplay.width=1920                # Screen width
 airplay.height=1080               # Screen height
 airplay.fps=60                    # Frames per second (higher = smoother, but uses more resources)
 player.implementation=gstreamer   # Player backend (gstreamer and ffmpeg are verified working)
 player.gstreamer.fullscreen=false # Use borderless fullscreen with GStreamer
 player.tray.enabled=true          # Enable or disable system tray icon
+launcher.language=en-US           # GUI language: zh-CN or en-US
 ```
 
 **Regarding Resolution and Frame Rate:**
@@ -123,7 +127,7 @@ The commands should print the FFmpeg version and the full path to `ffplay.exe`. 
    player.implementation=ffmpeg
    ```
 
-3. Save the file and double-click `run_airplay_server.bat` to restart the server.
+3. Save the file and restart from the GUI, or double-click `run_airplay_server.bat` to restart the command-line server.
 4. Connect from an iPhone, iPad, or Mac using Screen Mirroring. FFplay will open a full-screen video window; keep that window and the server command prompt open while mirroring.
 
 To return to the default bundled player, set `player.implementation=gstreamer` and restart the server. The FFmpeg mode still requires the bundled GStreamer files for audio, so do not remove the `gstreamer` directory.
@@ -209,7 +213,7 @@ Set-Location C:/path/to/Druadach-java-airplay
 ./build_patch.ps1
 ```
 
-The script extracts dependencies from the original JAR, compiles the patch source code, runs six regression test suites (RTP sequence numbers, Netty reference counting, FFmpeg audio forwarding, preemptive session takeover, GStreamer fullscreen configuration, and system tray quit), and outputs `java-airplay-server-fixed.jar`.
+The script extracts dependencies from the original JAR, compiles the server patch and Swing launcher, runs the server regression suites in source and packaged layouts, runs the launcher core tests and packaged installation validation, and outputs `java-airplay-server-fixed.jar` plus `java-airplay-launcher.jar`.
 
 The FFmpeg audio path has been verified with a real AirPlay sender transmitting AAC-ELD 44.1 kHz stereo audio. For production environments, continuous audio playback for >15 minutes is recommended to exceed a full 16-bit RTP sequence cycle, validating both rollover fixes and native memory stability.
 
