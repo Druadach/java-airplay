@@ -72,7 +72,43 @@ player.tray.enabled=true          # 是否显示系统托盘图标
 
 ---
 
-## 四、本版本修复了哪些问题
+## 四、使用 FFmpeg 模式（可选）
+
+FFmpeg 模式使用 `ffplay` 播放低延迟 H.264 视频。音频仍然使用项目内置的 GStreamer，因为 AirPlay 发送的是裸 ALAC / AAC-ELD 音频码流，`ffplay` 不能直接消费这种输入。
+
+### 前置条件
+
+安装包含 `ffmpeg.exe` 和 `ffplay.exe` 的 [Windows FFmpeg](https://ffmpeg.org/) 版本，然后把其中的 `bin` 目录加入 Windows 的 `Path` 环境变量。例如 FFmpeg 解压到 `C:\ffmpeg` 时，加入：
+
+```text
+C:\ffmpeg\bin
+```
+
+修改 `Path` 后，关闭并重新打开 PowerShell 或命令提示符，然后检查 `ffplay` 是否可用：
+
+```powershell
+ffplay -version
+where.exe ffplay
+```
+
+命令应当输出 FFmpeg 版本以及 `ffplay.exe` 的完整路径。如果提示找不到 `ffplay`，说明 `bin` 目录没有加入 `Path`，或者下载的版本没有包含 `ffplay.exe`。
+
+### 启用 FFmpeg 播放
+
+1. 打开 `application.properties`。
+2. 修改播放器配置：
+
+   ```properties
+   player.implementation=ffmpeg
+   ```
+
+3. 保存文件，然后双击 `run_airplay_server.bat` 重启服务。
+4. 在 iPhone、iPad 或 Mac 上使用“屏幕镜像”连接。投屏后会打开 FFplay 全屏视频窗口，投屏期间请保持该窗口和服务器黑色命令行窗口处于打开状态。
+
+如果要恢复默认的内置播放器，把配置改回 `player.implementation=gstreamer` 并重启服务。
+FFmpeg 模式的音频仍依赖项目内置的 GStreamer，请不要删除 `gstreamer` 目录。
+
+## 五、本版本修复了哪些问题
 
 本版本已修复原版存在以下问题：
 
@@ -86,14 +122,14 @@ player.tray.enabled=true          # 是否显示系统托盘图标
 
 ---
 
-## 五、演示视频
+## 六、演示视频
 
 - 树莓派 4B，1280×720 / 24 帧：[观看](https://youtu.be/uRvgVkLWfSI)
 - Windows 笔记本，1920×1080 / 30 帧：[观看](https://youtu.be/RT1hVWGJzos)
 
 ---
 
-## 六、给开发者
+## 七、给开发者
 
 <details>
 <summary>展开：命令行启动、播放器选项、重新编译、技术细节</summary>

@@ -70,7 +70,42 @@ The highest profile verified in this build is **3840 × 2160 @ 60 FPS**.
 
 ---
 
-## 4. Fixes in This Release
+## 4. Using FFmpeg Mode (Optional)
+
+FFmpeg mode uses the `ffplay` executable for low-latency H.264 video playback. Audio continues to use the bundled GStreamer runtime because AirPlay sends raw ALAC / AAC-ELD audio streams that `ffplay` cannot consume directly.
+
+### Prerequisites
+
+Install a [Windows FFmpeg](https://ffmpeg.org/) build that includes both `ffmpeg.exe` and `ffplay.exe`, then add the build's `bin` directory to the Windows `Path` environment variable. For example, if FFmpeg is extracted to `C:\ffmpeg`, add:
+
+```text
+C:\ffmpeg\bin
+```
+
+Close and reopen PowerShell or Command Prompt after changing `Path`, then verify that `ffplay` can be found:
+
+```powershell
+ffplay -version
+where.exe ffplay
+```
+
+The commands should print the FFmpeg version and the full path to `ffplay.exe`. If `ffplay` is not recognized, the `bin` directory is not on `Path`, or the downloaded build does not include `ffplay.exe`.
+
+### Enable FFmpeg playback
+
+1. Open `application.properties`.
+2. Change the player implementation:
+
+   ```properties
+   player.implementation=ffmpeg
+   ```
+
+3. Save the file and double-click `run_airplay_server.bat` to restart the server.
+4. Connect from an iPhone, iPad, or Mac using Screen Mirroring. FFplay will open a full-screen video window; keep that window and the server command prompt open while mirroring.
+
+To return to the default bundled player, set `player.implementation=gstreamer` and restart the server. The FFmpeg mode still requires the bundled GStreamer files for audio, so do not remove the `gstreamer` directory.
+
+## 5. Fixes in This Release
 
 This version resolves several issues present in the upstream release:
 
@@ -84,14 +119,14 @@ This version resolves several issues present in the upstream release:
 
 ---
 
-## 5. Demo Videos
+## 6. Demo Videos
 
 - Raspberry Pi 4B, 1280×720 / 24 FPS: [Watch](https://youtu.be/uRvgVkLWfSI)
 - Windows Laptop, 1920×1080 / 30 FPS: [Watch](https://youtu.be/RT1hVWGJzos)
 
 ---
 
-## 6. For Developers
+## 7. For Developers
 
 <details>
 <summary>Expand: PowerShell Launch, Player Options, Recompilation, and Technical Details</summary>
