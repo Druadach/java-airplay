@@ -1,0 +1,16 @@
+# Runtime output
+/log
+/log.*
+/dump.h264
+/test-results/
+
+# Local development output
+.idea/
+.vscode/
+.vs/
+*.iml
+target/
+build/
+out/
+*.class
+*.tmp
