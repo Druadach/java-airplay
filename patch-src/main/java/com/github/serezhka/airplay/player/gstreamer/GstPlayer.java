@@ -60,6 +60,12 @@ public abstract class GstPlayer implements AirPlayConsumer {
 
     protected abstract Pipeline createH264Pipeline();
 
+    protected final void withVideoPipelineLock(Runnable action) {
+        synchronized (videoPipelineLock) {
+            action.run();
+        }
+    }
+
     @Override
     public void onVideoFormat(VideoStreamInfo videoStreamInfo) {
         synchronized (videoPipelineLock) {

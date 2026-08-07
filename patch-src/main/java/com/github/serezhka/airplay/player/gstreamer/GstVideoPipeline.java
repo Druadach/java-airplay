@@ -7,9 +7,9 @@ final class GstVideoPipeline {
     private GstVideoPipeline() {
     }
 
-    static String fullscreen() {
+    static String controllable() {
         return H264_DECODER
                 + "d3d11videosink name=video-sink fullscreen-toggle-mode=property "
-                + "fullscreen=true sync=false";
+                + "enable-navigation-events=true fullscreen=false sync=false";
     }
 }

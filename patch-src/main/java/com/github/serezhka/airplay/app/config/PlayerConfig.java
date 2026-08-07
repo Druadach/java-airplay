@@ -2,7 +2,6 @@ package com.github.serezhka.airplay.app.config;
 
 import com.github.serezhka.airplay.app.menu.SystemTrayMenu;
 import com.github.serezhka.airplay.player.ffmpeg.FFmpegPlayer;
-import com.github.serezhka.airplay.player.gstreamer.GstPlayerDefault;
 import com.github.serezhka.airplay.player.gstreamer.GstPlayerFullscreen;
 import com.github.serezhka.airplay.player.gstreamer.GstPlayerSwing;
 import com.github.serezhka.airplay.player.h264dump.H264Dump;
@@ -25,10 +24,10 @@ public class PlayerConfig {
     public AirPlayConsumer gstreamer(
             @Value("#{new Boolean('${player.gstreamer.swing}')}") boolean useSwing,
             @Value("#{new Boolean('${player.gstreamer.fullscreen:true}')}") boolean fullscreen) {
-        if (fullscreen) {
-            return new GstPlayerFullscreen();
+        if (useSwing && !fullscreen) {
+            return new GstPlayerSwing();
         }
-        return useSwing ? new GstPlayerSwing() : new GstPlayerDefault();
+        return new GstPlayerFullscreen(fullscreen);
     }
 
     @Bean
@@ -57,8 +56,10 @@ public class PlayerConfig {
 
     @Bean
     @ConditionalOnProperty(value = "player.tray.enabled", havingValue = "true")
-    public SystemTrayMenu systemTrayMenu(ApplicationContext context) {
-        return new SystemTrayMenu(context);
+    public SystemTrayMenu systemTrayMenu(
+            ApplicationContext context,
+            AirPlayConsumer airPlayConsumer) {
+        return new SystemTrayMenu(context, airPlayConsumer);
     }
 
     @Bean

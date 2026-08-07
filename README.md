@@ -87,7 +87,11 @@ player.gstreamer.fullscreen=true
 ```
 
 The video window covers the primary display without a title bar while mirroring. Set
-`player.gstreamer.fullscreen=false` to restore the original windowed mode. Restart the server after changing this option.
+`player.gstreamer.fullscreen=false` to start in windowed mode. While the server is running, use the system tray's
+`Fullscreen` checkbox to switch the active GStreamer window without restarting the server or reconnecting the sender.
+When the native video window has focus, `F11` toggles fullscreen and `Esc` returns to windowed mode.
+Live switching uses the bundled Windows D3D11 backend and is available with the default
+`player.gstreamer.swing=false` setting. The legacy Swing window does not expose this tray control.
 
 ### FFmpeg
 
@@ -188,7 +192,7 @@ The service listens on port `5001` for control connections; media ports are assi
 - **RTP Audio Sequence Number:** Treated sequence numbers as unsigned 16-bit integers to correctly handle the `65535 -> 0` rollover.
 - **Audio Jitter Buffer:** Implemented a bounded reordering window to prevent single UDP packet drops from causing permanent audio muting.
 - **GStreamer Memory Safety:** Ensured `unmap()` is strictly called on GStreamer audio/video buffers after a successful `map()`, prior to downstream pushing.
-- **GStreamer Fullscreen:** Uses the native Direct3D 11 sink's borderless fullscreen property while retaining automatic sink selection in windowed mode.
+- **GStreamer Fullscreen:** Uses one native Direct3D 11 sink for windowed and borderless fullscreen playback, with live switching from the system tray, `F11`, and `Esc`.
 - **System Tray Quit:** Performs Spring cleanup in the background and forces process termination after 500 ms so a blocked Bonjour shutdown cannot keep the application windows open.
 - **Netty Buffer Leak:** Released consumed `FullHttpRequest` objects in `ControlHandler`, resolving HTTP buffer leaks reported by Netty leak detector.
 - **FFmpeg Audio Mode:** Configured FFplay to handle low-latency H.264 video, while forwarding raw ALAC / AAC-ELD audio streams to the internal GStreamer decoder and audio sink.

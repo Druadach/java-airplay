@@ -159,6 +159,8 @@ try {
         }
 
         & $jar --update --file $patchedGstreamerJar `
+                'com/github/serezhka/airplay/player/gstreamer/FullscreenController.class' `
+                'com/github/serezhka/airplay/player/gstreamer/FullscreenKeyBindings.class' `
                 'com/github/serezhka/airplay/player/gstreamer/GstPlayer.class' `
                 'com/github/serezhka/airplay/player/gstreamer/GstPlayerFullscreen.class' `
                 'com/github/serezhka/airplay/player/gstreamer/GstVideoPipeline.class'

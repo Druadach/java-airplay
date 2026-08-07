@@ -88,8 +88,12 @@ player.tray.enabled=true          # 是否显示系统托盘图标
 player.gstreamer.fullscreen=true
 ```
 
-投屏时，视频窗口会覆盖主显示器且不显示标题栏。要恢复原来的普通窗口，改为
-`player.gstreamer.fullscreen=false`。修改后需要重启服务才会生效。
+投屏时，视频窗口会覆盖主显示器且不显示标题栏。设置
+`player.gstreamer.fullscreen=false` 可让服务以窗口模式启动。服务运行后，可通过系统托盘中的
+`Fullscreen` 勾选项直接切换当前 GStreamer 窗口，无需重启服务或重新连接投屏设备。
+原生视频窗口获得焦点时，按 `F11` 可切换全屏，按 `Esc` 可返回窗口模式。
+实时切换使用随软件提供的 Windows D3D11 后端，在默认的 `player.gstreamer.swing=false` 设置下可用；
+旧的 Swing 窗口不会显示该托盘选项。
 
 ### 使用 FFmpeg 模式
 
@@ -192,7 +196,7 @@ $env:GST_PLUGIN_PATH = "$PWD/gstreamer/lib/gstreamer-1.0"
 - RTP 音频序列号按无符号 16 位处理，正确处理 `65535 -> 0` 回绕。
 - 有界重排序窗口，避免单个 UDP 丢包导致音频永久静音。
 - GStreamer 音视频缓冲在 `map()` 成功后、推送下游前必定 `unmap()`。
-- GStreamer 全屏模式使用 Direct3D 11 原生 sink 的无边框全屏属性，关闭该选项时仍使用自动选择的视频 sink。
+- GStreamer 窗口和无边框全屏共用 Direct3D 11 原生 sink，可通过系统托盘、`F11` 和 `Esc` 实时切换。
 - 托盘 `Quit` 在后台执行 Spring 清理；超过 500 毫秒会强制结束进程，避免 Bonjour 注销阻塞导致窗口延迟关闭。
 - `ControlHandler` 中释放已消费的 Netty `FullHttpRequest`，
   消除 Netty leak detector 报告的 HTTP 缓冲泄漏。

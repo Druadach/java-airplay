@@ -1,11 +1,16 @@
 package com.github.serezhka.airplay.app.menu;
 
+import com.github.serezhka.airplay.player.gstreamer.FullscreenController;
+import dorkbox.systemTray.Checkbox;
+
+import java.awt.event.ActionEvent;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 public final class SystemTrayMenuQuitTest {
     public static void main(String[] args) throws Exception {
@@ -14,12 +19,48 @@ public final class SystemTrayMenuQuitTest {
             return;
         }
 
+        fullscreenCheckboxControlsTheActivePlayer();
+        fullscreenCheckboxRollsBackAfterFailure();
         gracefulQuitRunsOffTheMenuEventThread();
         cleanupFailuresCannotPreventProcessExit();
         blockingTrayCleanupIsGuardedAndQuitIsIdempotent();
         watchdogForcesExitWhenCleanupBlocks();
         productionQuitTimeoutRemainsResponsive();
         System.out.println("System tray quit tests passed");
+    }
+
+    private static void fullscreenCheckboxControlsTheActivePlayer() {
+        FakeFullscreenController controller = new FakeFullscreenController(false);
+        Checkbox checkbox = SystemTrayMenu.createFullscreenCheckbox(controller);
+
+        assertEquals(false, checkbox.getChecked(), "initial fullscreen checkbox state");
+        selectFullscreen(checkbox, true);
+        assertEquals(true, controller.isFullscreen(), "fullscreen controller state");
+        assertEquals(1, controller.changes.get(), "fullscreen change count");
+
+        selectFullscreen(checkbox, false);
+        assertEquals(false, controller.isFullscreen(), "windowed controller state");
+        assertEquals(2, controller.changes.get(), "windowed change count");
+
+        controller.setFullscreen(true);
+        assertEquals(true, checkbox.getChecked(), "checkbox state after keyboard-style change");
+    }
+
+    private static void fullscreenCheckboxRollsBackAfterFailure() {
+        FakeFullscreenController controller = new FakeFullscreenController(false);
+        Checkbox checkbox = SystemTrayMenu.createFullscreenCheckbox(controller);
+        controller.failNextChange = true;
+
+        selectFullscreen(checkbox, true);
+
+        assertEquals(false, controller.isFullscreen(), "controller state after failed change");
+        assertEquals(false, checkbox.getChecked(), "checkbox state after failed change");
+    }
+
+    private static void selectFullscreen(Checkbox checkbox, boolean fullscreen) {
+        checkbox.setChecked(fullscreen);
+        checkbox.getCallback().actionPerformed(
+                new ActionEvent(checkbox, ActionEvent.ACTION_PERFORMED, checkbox.getText()));
     }
 
     private static void runProcessProbe(String mode) {
@@ -211,6 +252,41 @@ public final class SystemTrayMenuQuitTest {
     private static void assertEquals(Object expected, Object actual, String description) {
         if (!expected.equals(actual)) {
             throw new AssertionError(description + " expected " + expected + " but was " + actual);
+        }
+    }
+
+    private static final class FakeFullscreenController implements FullscreenController {
+        private final AtomicInteger changes = new AtomicInteger();
+        private Consumer<Boolean> listener;
+        private boolean fullscreen;
+        private boolean failNextChange;
+
+        private FakeFullscreenController(boolean fullscreen) {
+            this.fullscreen = fullscreen;
+        }
+
+        @Override
+        public boolean isFullscreen() {
+            return fullscreen;
+        }
+
+        @Override
+        public void setFullscreen(boolean fullscreen) {
+            if (failNextChange) {
+                failNextChange = false;
+                throw new IllegalStateException("fullscreen change failed");
+            }
+            this.fullscreen = fullscreen;
+            changes.incrementAndGet();
+            if (listener != null) {
+                listener.accept(fullscreen);
+            }
+        }
+
+        @Override
+        public void addFullscreenListener(Consumer<Boolean> listener) {
+            this.listener = listener;
+            listener.accept(fullscreen);
         }
     }
 }
