@@ -15,12 +15,14 @@
 
 ## 下载（EXE 安装包）
 
-除源码外，本仓库提供两种免配置的 Windows 分发形式（以 v1.2.0 为例，均内置 JRE 与 GStreamer，目标电脑无需安装 Java）：
+**[⬇️ 前往 Releases 页面下载最新版](https://github.com/Druadach/java-airplay/releases/latest)**
+
+除源码外，本仓库提供两种免配置的 Windows 分发形式（均内置 JRE 与 GStreamer，目标电脑无需安装 Java）。当前版本 v1.2.0 直链：
 
 | 文件 | 类型 | 说明 |
 | --- | --- | --- |
-| `AirPlayReceiver_Setup_1.2.0.exe` | 安装版 | 向导式安装：可选安装目录、创建开始菜单/桌面快捷方式、可在“设置 → 应用”中卸载；安装器会对安装目录授予普通用户写权限，运行时无需管理员即可保存设置 |
-| `AirPlayReceiver_Portable_1.2.0.zip` | 便携版 | 解压到任意目录，双击其中的 `AirPlayReceiver.exe` 即可；配置保存在同目录的 `application.properties` |
+| [AirPlayReceiver_Setup_1.2.0.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.0/AirPlayReceiver_Setup_1.2.0.exe) | 安装版 | 向导式安装：可选安装目录、创建开始菜单/桌面快捷方式、可在“设置 → 应用”中卸载；安装器会对安装目录授予普通用户写权限，运行时无需管理员即可保存设置 |
+| [AirPlayReceiver_Portable_1.2.0.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.0/AirPlayReceiver_Portable_1.2.0.zip) | 便携版 | 解压到任意目录，双击其中的 `AirPlayReceiver.exe` 即可；配置保存在同目录的 `application.properties` |
 
 安装版首次运行同样会触发 Windows 防火墙提示，请选择“允许访问”。安装包自带中/英文安装界面。
 

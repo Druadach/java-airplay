@@ -15,12 +15,14 @@ This project is modified based on the original project [serezhka/java-airplay](h
 
 ## Download (EXE Packages)
 
-Besides the sources, this repository ships two ready-to-run Windows distributions (v1.2.0 shown as the example; both bundle the JRE and GStreamer runtime, so no Java install is needed on the target PC):
+**[⬇️ Get the latest build from the Releases page](https://github.com/Druadach/java-airplay/releases/latest)**
+
+Besides the sources, this repository ships two ready-to-run Windows distributions (both bundle the JRE and GStreamer runtime, so no Java install is needed on the target PC). Direct links for the current v1.2.0 release:
 
 | File | Type | Description |
 | --- | --- | --- |
-| `AirPlayReceiver_Setup_1.2.0.exe` | Installer | Guided setup: choose the install folder, create Start-menu/desktop shortcuts, uninstall from "Settings → Apps"; the installer grants write permission on the install folder so settings can be saved without admin rights |
-| `AirPlayReceiver_Portable_1.2.0.zip` | Portable | Extract anywhere and double-click `AirPlayReceiver.exe`; configuration is kept in `application.properties` next to the exe |
+| [AirPlayReceiver_Setup_1.2.0.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.0/AirPlayReceiver_Setup_1.2.0.exe) | Installer | Guided setup: choose the install folder, create Start-menu/desktop shortcuts, uninstall from "Settings → Apps"; the installer grants write permission on the install folder so settings can be saved without admin rights |
+| [AirPlayReceiver_Portable_1.2.0.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.0/AirPlayReceiver_Portable_1.2.0.zip) | Portable | Extract anywhere and double-click `AirPlayReceiver.exe`; configuration is kept in `application.properties` next to the exe |
 
 The installer shows its wizard in English or Chinese. The first launch still triggers the Windows Firewall prompt — click "Allow access".
 
