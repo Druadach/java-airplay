@@ -16,3 +16,8 @@ out/
 *.tmp
 __pycache__/
 *.py[cod]
+
+# Packaging build output
+/packaging/stage/
+/packaging/dist/
+/packaging/AirPlayReceiver.exe

@@ -53,9 +53,9 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
     private static final Pattern LABELED_INTEGER = Pattern.compile(
             "^\\s*([+-]?\\d+)\\s*(?:\\([^)]*\\))?\\s*$");
     static final List<String> WIDTH_CANDIDATES = List.of(
-            "1280 (1K)", "1920 (2K)", "2560 (2.5K)", "3840 (4K)");
+            "1280 (HD)", "1920 (FHD)", "2560 (2K)", "3840 (4K)");
     static final List<String> HEIGHT_CANDIDATES = List.of(
-            "720 (1K)", "1080 (2K)", "1440 (2.5K)", "2160 (4K)");
+            "720 (HD)", "1080 (FHD)", "1440 (2K)", "2160 (4K)");
     static final List<Integer> FPS_CANDIDATES = List.of(24, 30, 60);
 
     private final ConfigStore configStore;

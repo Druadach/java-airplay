@@ -13,13 +13,27 @@ This project is modified based on the original project [serezhka/java-airplay](h
 
 ---
 
+## Download (EXE Packages)
+
+Besides the sources, this repository ships two ready-to-run Windows distributions (v1.2.0 shown as the example; both bundle the JRE and GStreamer runtime, so no Java install is needed on the target PC):
+
+| File | Type | Description |
+| --- | --- | --- |
+| `AirPlayReceiver_Setup_1.2.0.exe` | Installer | Guided setup: choose the install folder, create Start-menu/desktop shortcuts, uninstall from "Settings → Apps"; the installer grants write permission on the install folder so settings can be saved without admin rights |
+| `AirPlayReceiver_Portable_1.2.0.zip` | Portable | Extract anywhere and double-click `AirPlayReceiver.exe`; configuration is kept in `application.properties` next to the exe |
+
+The installer shows its wizard in English or Chinese. The first launch still triggers the Windows Firewall prompt — click "Allow access".
+
+---
+
 ## 1. Quick Start in 3 Steps
 
-1. **Open the Launcher**
-   Double-click `run_airplay_gui.bat`. The launcher uses the bundled Java runtime and does not open a command prompt window.
+1. **Launch the App**
+   Installed build: double-click the `AirPlay Receiver` desktop/Start-menu shortcut (or `AirPlayReceiver.exe` in the install folder); portable build: extract the ZIP and double-click `AirPlayReceiver.exe` inside.
+   The original `run_airplay_gui.bat` works identically. The launcher uses the bundled Java runtime and does not open a command prompt window.
 
 2. **Configure and Start**
-   Switch between `中文` and `English` from the top of the window at any time. Set the server name, resolution, frame rate, player, and startup display mode; changes are saved automatically. Then click `Start`. Each width and height choice is labeled with its resolution tier (`1K / 2K / 2.5K / 4K`, for example, `3840 (4K)` and `2160 (4K)`) and remains editable for custom keyboard input. The status changes to `Running` when AirPlay is ready.
+   Switch between `中文` and `English` from the top of the window at any time. Set the server name, resolution, frame rate, player, and startup display mode; changes are saved automatically. Then click `Start`. Each width and height choice is labeled with its resolution tier (`HD / FHD / 2K / 4K` — 720P, 1080P, 1440P and 2160P respectively; for example `3840 (4K)` and `2160 (4K)`) and remains editable for custom keyboard input. The status changes to `Running` when AirPlay is ready.
 
 3. **Connect from Apple Devices**
    Ensure your mobile device/Mac and PC are connected to the same Wi-Fi network → Open "Control Center" → Tap "Screen Mirroring" → Select your AirPlay server name.
@@ -214,6 +228,10 @@ Set-Location C:/path/to/Druadach-java-airplay
 ```
 
 The script extracts dependencies from the original JAR, compiles the server patch and Swing launcher, runs the server regression suites in source and packaged layouts, runs the launcher core tests and packaged installation validation, and outputs `java-airplay-server-fixed.jar` plus `java-airplay-launcher.jar`.
+
+### Building the Windows EXE Packages
+
+The installer EXE and portable ZIP are produced from the scripts in the `packaging` directory (Inno Setup + native launcher + icon); see `packaging/README.md` for the exact steps.
 
 The FFmpeg audio path has been verified with a real AirPlay sender transmitting AAC-ELD 44.1 kHz stereo audio. For production environments, continuous audio playback for >15 minutes is recommended to exceed a full 16-bit RTP sequence cycle, validating both rollover fixes and native memory stability.
 

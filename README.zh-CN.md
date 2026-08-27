@@ -9,17 +9,31 @@
 
 本软件用于将 iPhone、iPad、Mac 投屏到 Windows 电脑上，最高支持 4K 60 帧。
 
-本项目基于原作者 [serezhka](https://github.com/serezhka) 的 [serezhka/java-airplay](https://github.com/serezhka/java-airplay) 修改，已经把运行所需组件（Java 运行环境、GStreamer 播放组件）全部打包在内，无需另外安装，下载即可使用。
+本项目基于原作者 [serezhka](https://github.com/serezhka) 的 [serezhka/java-airplay](https://github.com/serezhka/java-airplay) 修改，下载即可使用，已经把运行所需组件（Java 运行环境、GStreamer 播放组件）全部打包在内，无需另外安装。
+
+---
+
+## 下载（EXE 安装包）
+
+除源码外，本仓库提供两种免配置的 Windows 分发形式（以 v1.2.0 为例，均内置 JRE 与 GStreamer，目标电脑无需安装 Java）：
+
+| 文件 | 类型 | 说明 |
+| --- | --- | --- |
+| `AirPlayReceiver_Setup_1.2.0.exe` | 安装版 | 向导式安装：可选安装目录、创建开始菜单/桌面快捷方式、可在“设置 → 应用”中卸载；安装器会对安装目录授予普通用户写权限，运行时无需管理员即可保存设置 |
+| `AirPlayReceiver_Portable_1.2.0.zip` | 便携版 | 解压到任意目录，双击其中的 `AirPlayReceiver.exe` 即可；配置保存在同目录的 `application.properties` |
+
+安装版首次运行同样会触发 Windows 防火墙提示，请选择“允许访问”。安装包自带中/英文安装界面。
 
 ---
 
 ## 一、3 步开始使用
 
-1. **打开启动器**
-   双击 `run_airplay_gui.bat`。启动器使用项目内置 Java，不会弹出命令行窗口。
+1. **启动程序**
+   安装版：双击桌面或开始菜单的“AirPlay 接收端”快捷方式（或安装目录中的 `AirPlayReceiver.exe`）；便携版：解压后双击其中的 `AirPlayReceiver.exe`。
+   也可使用原有的 `run_airplay_gui.bat`，效果相同。启动器使用项目内置 Java，不会弹出命令行窗口。
 
 2. **配置并启动**
-   可在窗口顶部随时切换“中文 / English”。设置服务名称、分辨率、帧率、播放器和启动显示模式；修改会自动保存，然后点击“启动”。每个宽度和高度候选都会标注对应的分辨率档位 `1K / 2K / 2.5K / 4K`（例如 `3840 (4K)`、`2160 (4K)`），也可直接键盘输入自定义数值。状态变为“运行中”后即可投屏。
+   可在窗口顶部随时切换“中文 / English”。设置服务名称、分辨率、帧率、播放器和启动显示模式；修改会自动保存，然后点击“启动”。每个宽度和高度候选都会标注对应的分辨率档位 `HD / FHD / 2K / 4K`（分别对应 720P、1080P、1440P 和 2160P，例如 `3840 (4K)`、`2160 (4K)`），也可直接键盘输入自定义数值。状态变为“运行中”后即可投屏。
 
 3. **在苹果设备上连接**
    确认手机和电脑连的是同一个 WiFi → 打开"控制中心" → 点击"屏幕镜像" → 选择 AirPlay 服务器名字。
@@ -221,6 +235,10 @@ Set-Location C:/path/to/Druadach-java-airplay
 
 脚本会从原始 JAR 提取依赖，编译服务端补丁和 Swing 启动器，在源码和成品布局下运行服务端回归测试，并运行启动器核心测试与成品安装校验，最后输出
 `java-airplay-server-fixed.jar` 和 `java-airplay-launcher.jar`。
+
+### 打包 Windows EXE
+
+安装版 EXE 与便携版 ZIP 由 `packaging` 目录下的脚本生成（Inno Setup + 原生启动器 + 图标），步骤与依赖见 `packaging/README.md`。
 
 FFmpeg 音频路径已用真实 AirPlay 发送端以 AAC-ELD 44.1 kHz 立体声验证。
 生产环境建议连续播放音频 15 分钟以上，这超过完整的 16 位 RTP 序列周期，

@@ -48,10 +48,10 @@ public final class LauncherCoreTest {
     }
 
     private static void editableNumericFieldsAcceptCustomValues() {
-        assertEquals(List.of("1280 (1K)", "1920 (2K)", "2560 (2.5K)", "3840 (4K)"),
+        assertEquals(List.of("1280 (HD)", "1920 (FHD)", "2560 (2K)", "3840 (4K)"),
                 LauncherFrame.WIDTH_CANDIDATES,
                 "width candidates");
-        assertEquals(List.of("720 (1K)", "1080 (2K)", "1440 (2.5K)", "2160 (4K)"),
+        assertEquals(List.of("720 (HD)", "1080 (FHD)", "1440 (2K)", "2160 (4K)"),
                 LauncherFrame.HEIGHT_CANDIDATES,
                 "height candidates");
         assertEquals(List.of(24, 30, 60), LauncherFrame.FPS_CANDIDATES,
@@ -64,8 +64,8 @@ public final class LauncherCoreTest {
                 "decimal K width candidate");
         assertEquals(2160, LauncherFrame.parseEditableInteger("2160 (4K)", "Height"),
                 "labeled height candidate");
-        assertEquals(720, LauncherFrame.parseEditableInteger("720 (1K)", "Height"),
-                "1K height candidate");
+        assertEquals(720, LauncherFrame.parseEditableInteger("720 (HD)", "Height"),
+                "HD height candidate");
         assertEquals(3440, LauncherFrame.parseEditableInteger(" 3440 ", "Width"),
                 "custom keyboard input");
         expectFailure(() -> LauncherFrame.parseEditableInteger("wide", "Width"));
