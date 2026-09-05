@@ -55,7 +55,7 @@ namespace AirPlayLauncher
             var psi = new ProcessStartInfo
             {
                 FileName = javaExe,
-                Arguments = "-Dfile.encoding=UTF-8 -jar \"" + jar + "\" --base-dir=\"" + appDir + "\"",
+                Arguments = "-Dfile.encoding=UTF-8 -jar \"" + jar + "\" --base-dir \"" + appDir + "\"",
                 UseShellExecute = false,
                 WorkingDirectory = appDir,
             };

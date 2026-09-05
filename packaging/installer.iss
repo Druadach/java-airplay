@@ -30,8 +30,8 @@ Name: "chinese"; MessagesFile: "ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [CustomMessages]
-english.FirewallHint=Installation complete.%n%nFirst launch tip:%nWhen Windows Firewall asks for permission, please click "Allow access", otherwise iPhone/iPad cannot discover this PC.
-chinese.FirewallHint=安装完成。%n%n首次启动提示：%n当 Windows 防火墙弹出提示时，请点击“允许访问”，否则手机将搜索不到本电脑。
+english.FirewallHint=Installation complete.%n%nFirst launch tip:%nWhen Windows Firewall asks for permission, please click “Allow access”, otherwise your device cannot discover this PC.
+chinese.FirewallHint=安装完成。%n%n首次启动提示：%n当 Windows 防火墙弹出提示时，请点击”允许访问”，否则设备将搜索不到本电脑。
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checkedonce
