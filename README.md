@@ -52,7 +52,7 @@ The server port rarely needs adjustment, so it is hidden from the GUI. Edit `air
 ## 2. Frequently Asked Questions (FAQ)
 
 **Cannot find the PC on my Apple device?**
-- Are the phone and PC on the exact same Wi-Fi network? (Note: 2.4 GHz and 5 GHz networks are sometimes isolated under different SSIDs).
+- Are the device and PC on the exact same Wi-Fi network? (Note: 2.4 GHz and 5 GHz networks are sometimes isolated under different SSIDs).
 - Does the GUI launcher show the service as running, or is the command-line server window still open?
 - Did you click "Allow" on the Windows Firewall prompt during the first launch? If you accidentally clicked "Cancel," you need to manually allow it in Windows Firewall settings or reinstall the app.
 - "AP Isolation" on corporate or hotel Wi-Fi networks blocks device-to-device discovery. In such cases, try using a mobile hotspot or PC hotspot instead.
