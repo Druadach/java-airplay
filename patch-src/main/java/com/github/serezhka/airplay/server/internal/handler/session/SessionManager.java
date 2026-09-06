@@ -1,11 +1,14 @@
 package com.github.serezhka.airplay.server.internal.handler.session;
 
+import com.github.serezhka.airplay.server.internal.handler.control.AirPlayVolume;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class SessionManager {
 
     private final Map<String, Session> sessions = new HashMap<>();
+    private final Map<Session, Double> volumeDbBySession = new HashMap<>();
 
     private ControlSession activeControlSession;
     private MediaLease videoLease;
@@ -17,9 +20,18 @@ public class SessionManager {
             if (session == null) {
                 session = new Session();
                 sessions.put(activeRemote, session);
+                volumeDbBySession.put(session, AirPlayVolume.DEFAULT_DB);
             }
             return session;
         }
+    }
+
+    public synchronized double volumeDb(Session session) {
+        return volumeDbBySession.getOrDefault(session, AirPlayVolume.DEFAULT_DB);
+    }
+
+    synchronized void setVolumeDb(Session session, double volumeDb) {
+        volumeDbBySession.put(session, AirPlayVolume.clampDb(volumeDb));
     }
 
     public synchronized ControlSession openControlSession(Session session, Runnable closeAction) {

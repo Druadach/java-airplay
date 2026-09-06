@@ -1,7 +1,7 @@
 ﻿; AirPlay Receiver installer — bundles JRE21 + GStreamer runtime + patched server jar
 #define MyAppName "AirPlay 接收器"
 #define MyAppNameEn "AirPlay Receiver"
-#define MyAppVersion "1.2.1"
+#define MyAppVersion "1.2.2"
 #define MyAppExeName "AirPlayReceiver.exe"
 
 [Setup]

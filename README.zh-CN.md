@@ -17,12 +17,12 @@
 
 **[⬇️ 前往 Releases 页面下载最新版](https://github.com/Druadach/java-airplay/releases/latest)**
 
-本仓库提供两种免配置的 Windows 分发形式。当前版本 v1.2.1 直链：
+本仓库提供两种免配置的 Windows 分发形式。当前版本 v1.2.2 直链：
 
 | 文件 | 类型 | 说明 |
 | --- | --- | --- |
-| [AirPlayReceiver_Setup_1.2.1.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.1/AirPlayReceiver_Setup_1.2.1.exe) | 安装版 | 向导式安装：可选安装目录、创建开始菜单/桌面快捷方式、可在“设置 → 应用”中卸载；安装器会对安装目录授予普通用户写权限，运行时无需管理员即可保存设置 |
-| [AirPlayReceiver_Portable_1.2.1.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.1/AirPlayReceiver_Portable_1.2.1.zip) | 便携版 | 解压到任意目录，双击其中的 `AirPlayReceiver.exe` 即可；配置保存在同目录的 `application.properties` |
+| [AirPlayReceiver_Setup_1.2.2.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.2/AirPlayReceiver_Setup_1.2.2.exe) | 安装版 | 向导式安装：可选安装目录、创建开始菜单/桌面快捷方式、可在“设置 → 应用”中卸载；安装器会对安装目录授予普通用户写权限，运行时无需管理员即可保存设置 |
+| [AirPlayReceiver_Portable_1.2.2.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.2/AirPlayReceiver_Portable_1.2.2.zip) | 便携版 | 解压到任意目录，双击其中的 `AirPlayReceiver.exe` 即可；配置保存在同目录的 `application.properties` |
 
 ---
 
@@ -100,6 +100,10 @@ launcher.autoStart.runService=false # 启动器运行后自动启动投屏服务
 - **FFmpeg**：使用 PATH 中的 <code>ffplay</code> 播放 H.264/HEVC，并使用 GStreamer 播放音频。
 - **VLC**：要求 VLC 已加入 PATH。
 - **h264-dump**：将视频流写入 <code>dump.h264</code>。
+
+发送端调整 AirPlay 音量时，接收端会把 `-144..0 dB` 的音量应用到 GStreamer
+音频输出。GStreamer 和 FFmpeg 模式都支持此功能，因为 FFmpeg 模式的音频仍由
+GStreamer 播放；该功能不会修改 Windows 系统音量。
 
 ### GStreamer 窗口/全屏模式切换
 
@@ -223,6 +227,8 @@ $env:GST_PLUGIN_PATH = "$PWD/gstreamer/lib/gstreamer-1.0"
   消除 Netty leak detector 报告的 HTTP 缓冲泄漏。
 - FFmpeg 模式下 FFplay 负责低延迟 H.264 视频，
   ALAC / AAC-ELD 音频转发到内置 GStreamer 解码器与音频 sink。
+- 解析 RTSP `SET_PARAMETER` 的 AirPlay 音量并实时应用到当前 GStreamer 音频管线，
+  `GET_PARAMETER` 返回当前值；不会修改 Windows 系统音量。
 - 设备抢占接管时，立即吊销前一设备的控制连接 generation 与媒体租约，丢弃迟到的音视频帧和延迟的 TEARDOWN 请求，并在锁同步下重置 GStreamer H.264 解码管线，避免参考帧污染。
 
 补丁源码位于 `patch-src`，打包产物由 `build_patch.ps1` 生成。

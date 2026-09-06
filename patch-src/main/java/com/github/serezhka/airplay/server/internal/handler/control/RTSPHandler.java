@@ -69,7 +69,8 @@ public class RTSPHandler extends ControlHandler {
             }
             return sendResponse(ctx, request, response);
         } else if (RtspMethods.GET_PARAMETER.equals(request.method())) {
-            byte[] content = "volume: 1.000000\r\n".getBytes(StandardCharsets.US_ASCII);
+            byte[] content = AirPlayVolume.formatParameter(sessionManager.volumeDb(session))
+                    .getBytes(StandardCharsets.US_ASCII);
             response.content().writeBytes(content);
             return sendResponse(ctx, request, response);
         } else if (RtspMethods.RECORD.equals(request.method())) {
@@ -77,6 +78,9 @@ public class RTSPHandler extends ControlHandler {
             response.headers().add("Audio-Jack-Status", "connected; type=analog");
             return sendResponse(ctx, request, response);
         } else if (RtspMethods.SET_PARAMETER.equals(request.method())) {
+            AirPlayVolume.parse(request.content().toString(StandardCharsets.US_ASCII))
+                    .ifPresent(volumeDb -> mediaCoordinator.setVolume(
+                            controlSession(ctx, session), volumeDb));
             return sendResponse(ctx, request, response);
         } else if ("FLUSH".equals(request.method().toString())) {
             return sendResponse(ctx, request, response);

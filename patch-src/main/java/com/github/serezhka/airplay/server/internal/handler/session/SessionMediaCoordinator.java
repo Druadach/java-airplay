@@ -3,6 +3,8 @@ package com.github.serezhka.airplay.server.internal.handler.session;
 import com.github.serezhka.airplay.lib.AudioStreamInfo;
 import com.github.serezhka.airplay.lib.VideoStreamInfo;
 import com.github.serezhka.airplay.server.AirPlayConsumer;
+import com.github.serezhka.airplay.server.VolumeController;
+import com.github.serezhka.airplay.server.internal.handler.control.AirPlayVolume;
 
 import java.util.Objects;
 
@@ -63,6 +65,7 @@ public final class SessionMediaCoordinator {
 
             SessionManager.MediaLease lease = sessionManager.openAudioLease(controlSession);
             try {
+                applyVolume(sessionManager.volumeDb(session));
                 delegate.onAudioFormat(audioStreamInfo);
             } catch (RuntimeException | Error exception) {
                 sessionManager.closeAudioLease(controlSession, lease);
@@ -75,6 +78,18 @@ public final class SessionMediaCoordinator {
                     lease,
                     SessionAirPlayConsumer.StreamKind.AUDIO,
                     delegate);
+        }
+    }
+
+    public void setVolume(SessionManager.ControlSession controlSession, double volumeDb) {
+        synchronized (sessionManager) {
+            Session session = controlSession.getSession();
+            double clampedVolumeDb = AirPlayVolume.clampDb(volumeDb);
+            sessionManager.setVolumeDb(session, clampedVolumeDb);
+            if (sessionManager.isActiveControl(controlSession)
+                    && sessionManager.hasAudioLease(controlSession)) {
+                applyVolume(clampedVolumeDb);
+            }
         }
     }
 
@@ -178,6 +193,12 @@ public final class SessionMediaCoordinator {
         if (!sessionManager.hasVideoLease(controlSession)
                 && !sessionManager.hasAudioLease(controlSession)) {
             sessionManager.releaseActiveControl(controlSession);
+        }
+    }
+
+    private void applyVolume(double volumeDb) {
+        if (delegate instanceof VolumeController volumeController) {
+            volumeController.setVolumeDb(volumeDb);
         }
     }
 }

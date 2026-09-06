@@ -165,9 +165,27 @@ try {
     }
 
     & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
+            com.github.serezhka.airplay.server.internal.handler.control.AirPlayVolumeTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "AirPlay volume tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
+            com.github.serezhka.airplay.server.internal.handler.control.RTSPHandlerVolumeTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "RTSP volume tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
             com.github.serezhka.airplay.server.internal.handler.session.SessionMediaCoordinatorTest
     if ($LASTEXITCODE -ne 0) {
         throw "Session media takeover tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
+            com.github.serezhka.airplay.server.internal.handler.session.SessionMediaCoordinatorVolumeTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Session volume coordination tests failed with exit code $LASTEXITCODE"
     }
 
     & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
@@ -246,7 +264,7 @@ try {
         Pop-Location
     }
 
-    & $java -cp "$testOutput;$patchedServerJar;$libraryDir\*" `
+    & $java -cp "$testOutput;$mainOutput;$patchedServerJar;$libraryDir\*" `
             com.github.serezhka.airplay.server.internal.handler.session.SessionMediaCoordinatorTest
     if ($LASTEXITCODE -ne 0) {
         throw "Packaged session media takeover tests failed with exit code $LASTEXITCODE"
@@ -255,6 +273,8 @@ try {
     $serverEntry = 'BOOT-INF/lib/server-1.0.6.jar'
     $gstreamerEntry = 'BOOT-INF/lib/gstreamer-1.0.6.jar'
     $ffmpegEntry = 'BOOT-INF/lib/ffmpeg-1.0.6.jar'
+    $volumeControllerEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/server/VolumeController.class'
+    $airPlayVolumeEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/server/internal/handler/control/AirPlayVolume.class'
     $playerConfigEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/app/config/PlayerConfig.class'
     $systemTrayMenuEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/app/menu/SystemTrayMenu.class'
     $trayIconEntry = 'BOOT-INF/classes/menu/tray_icon.png'
@@ -271,12 +291,20 @@ try {
             (Join-Path $fatJarStage 'BOOT-INF\classes\com\github\serezhka\airplay\app\control'))
     [void][IO.Directory]::CreateDirectory(
             (Join-Path $fatJarStage 'BOOT-INF\classes\com\github\serezhka\airplay\app\lifecycle'))
+    [void][IO.Directory]::CreateDirectory(
+            (Join-Path $fatJarStage 'BOOT-INF\classes\com\github\serezhka\airplay\server\internal\handler\control'))
+    [void][IO.Directory]::CreateDirectory(
+            (Join-Path $fatJarStage 'BOOT-INF\classes\com\github\serezhka\airplay\server'))
     [void][IO.Directory]::CreateDirectory((Join-Path $fatJarStage 'BOOT-INF\classes\menu'))
     Copy-Item -LiteralPath $patchedServerJar -Destination (Join-Path $fatJarStage $serverEntry)
     Copy-Item -LiteralPath $patchedGstreamerJar -Destination (Join-Path $fatJarStage $gstreamerEntry)
     Copy-Item -LiteralPath $patchedFfmpegJar -Destination (Join-Path $fatJarStage $ffmpegEntry)
     Copy-Item -LiteralPath (Join-Path $mainOutput 'com\github\serezhka\airplay\app\config\PlayerConfig.class') `
             -Destination (Join-Path $fatJarStage $playerConfigEntry)
+    Copy-Item -LiteralPath (Join-Path $mainOutput 'com\github\serezhka\airplay\server\VolumeController.class') `
+            -Destination (Join-Path $fatJarStage $volumeControllerEntry)
+    Copy-Item -LiteralPath (Join-Path $mainOutput 'com\github\serezhka\airplay\server\internal\handler\control\AirPlayVolume.class') `
+            -Destination (Join-Path $fatJarStage $airPlayVolumeEntry)
     Copy-Item -LiteralPath (Join-Path $mainOutput 'com\github\serezhka\airplay\app\menu\SystemTrayMenu.class') `
             -Destination (Join-Path $fatJarStage $systemTrayMenuEntry)
     Copy-Item -LiteralPath (Join-Path $mainOutput 'com\github\serezhka\airplay\app\control\LocalControlServer.class') `
@@ -322,7 +350,8 @@ try {
     Push-Location $fatJarStage
     try {
         & $jar --update --file $candidateJar --no-compress `
-                $serverEntry $gstreamerEntry $ffmpegEntry $playerConfigEntry $systemTrayMenuEntry $trayIconEntry `
+                $serverEntry $gstreamerEntry $ffmpegEntry $volumeControllerEntry $airPlayVolumeEntry `
+                $playerConfigEntry $systemTrayMenuEntry $trayIconEntry `
                 $localControlServerEntry $localControlResultEntry $localControlRejectedEntry `
                 $applicationShutdownEntry
         if ($LASTEXITCODE -ne 0) {

@@ -1,6 +1,7 @@
 package com.github.serezhka.airplay.player.gstreamer;
 
 import com.github.serezhka.airplay.app.config.PlayerConfig;
+import com.github.serezhka.airplay.server.VolumeController;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.lang.reflect.Method;
@@ -15,6 +16,7 @@ public final class GstFullscreenConfigurationTest {
         controllablePipelineUsesTheNativeBorderlessMode();
         playerConfigurationExposesTheFullscreenSwitch();
         nativePlayerExposesRuntimeFullscreenControl();
+        audioVolumeControlIsExposedWithoutStartingGStreamer();
         nativeWindowKeyboardBindingsAreMapped();
         System.out.println("GStreamer fullscreen configuration tests passed");
     }
@@ -44,6 +46,23 @@ public final class GstFullscreenConfigurationTest {
         GstPlayerFullscreen.class.getMethod("isFullscreen");
         GstPlayerFullscreen.class.getMethod("setFullscreen", boolean.class);
         GstPlayerFullscreen.class.getMethod("addFullscreenListener", java.util.function.Consumer.class);
+    }
+
+    private static void audioVolumeControlIsExposedWithoutStartingGStreamer() throws Exception {
+        assertTrue(
+                VolumeController.class.isAssignableFrom(GstPlayer.class),
+                "GStreamer player must implement runtime volume control");
+        GstPlayer.class.getMethod("setVolumeDb", double.class);
+        assertClose(
+                Math.pow(10.0, -15.0 / 20.0),
+                VolumeController.dbToLinear(-15.0),
+                "AirPlay volume conversion");
+    }
+
+    private static void assertClose(double expected, double actual, String description) {
+        if (Math.abs(expected - actual) > 0.000001) {
+            throw new AssertionError(description + " expected " + expected + " but was " + actual);
+        }
     }
 
     private static void nativeWindowKeyboardBindingsAreMapped() {

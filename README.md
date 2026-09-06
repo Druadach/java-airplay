@@ -17,12 +17,12 @@ This project is modified based on [serezhka/java-airplay](https://github.com/ser
 
 **[⬇️ Get the latest build from the Releases page](https://github.com/Druadach/java-airplay/releases/latest)**
 
-This repository provides two ready-to-run Windows distributions. Direct links for the current v1.2.1 release:
+This repository provides two ready-to-run Windows distributions. Direct links for the current v1.2.2 release:
 
 | File | Type | Description |
 | --- | --- | --- |
-| [AirPlayReceiver_Setup_1.2.1.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.1/AirPlayReceiver_Setup_1.2.1.exe) | Installer | Guided setup: choose the install folder, create Start-menu/desktop shortcuts, uninstall from "Settings → Apps"; the installer grants write permission on the install folder so settings can be saved without admin rights |
-| [AirPlayReceiver_Portable_1.2.1.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.1/AirPlayReceiver_Portable_1.2.1.zip) | Portable | Extract anywhere and double-click `AirPlayReceiver.exe`; configuration is kept in `application.properties` next to the exe |
+| [AirPlayReceiver_Setup_1.2.2.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.2/AirPlayReceiver_Setup_1.2.2.exe) | Installer | Guided setup: choose the install folder, create Start-menu/desktop shortcuts, uninstall from "Settings → Apps"; the installer grants write permission on the install folder so settings can be saved without admin rights |
+| [AirPlayReceiver_Portable_1.2.2.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.2/AirPlayReceiver_Portable_1.2.2.zip) | Portable | Extract anywhere and double-click `AirPlayReceiver.exe`; configuration is kept in `application.properties` next to the exe |
 
 ---
 
@@ -96,6 +96,11 @@ The highest profile verified in this build is **3840 × 2160 @ 60 FPS**.
 - **FFmpeg**: Uses `ffplay` from `Path` to play H.264/HEVC and uses GStreamer for audio.
 - **VLC**: Requires VLC to be available on `Path`.
 - **h264-dump**: Writes the video stream to `dump.h264`.
+
+When the sender changes its AirPlay volume, the receiver applies the requested
+`-144..0 dB` level to the GStreamer audio output. This works in both GStreamer
+and FFmpeg modes because FFmpeg mode uses GStreamer for audio; it does not change
+the Windows system volume.
 
 ### GStreamer Borderless Fullscreen
 
@@ -215,6 +220,7 @@ The service listens on port `5001` for control connections; media ports are assi
 - **System Tray Quit:** Performs Spring cleanup in the background and forces process termination after 500 ms so a blocked Bonjour shutdown cannot keep the application windows open.
 - **Netty Buffer Leak:** Released consumed `FullHttpRequest` objects in `ControlHandler`, resolving HTTP buffer leaks reported by Netty leak detector.
 - **FFmpeg Audio Mode:** Configured FFplay to handle low-latency H.264 video, while forwarding raw ALAC / AAC-ELD audio streams to the internal GStreamer decoder and audio sink.
+- **AirPlay Volume:** Parses RTSP `SET_PARAMETER` volume updates, applies them to the active GStreamer audio pipeline, and reports the current value through `GET_PARAMETER` without changing Windows system volume.
 - **Preemptive Session Hijacking:** On device switch, immediately revokes the previous device's control connection generation and media lease, drops late audio/video frames and delayed TEARDOWN requests, and synchronously resets the GStreamer H.264 decoding pipeline to eliminate reference frame corruption.
 
 Patch sources are located in `patch-src`. The build artifacts are generated via `build_patch.ps1`.

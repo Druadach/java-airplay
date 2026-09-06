@@ -3,6 +3,7 @@ package com.github.serezhka.airplay.player.ffmpeg;
 import com.github.serezhka.airplay.lib.AudioStreamInfo;
 import com.github.serezhka.airplay.lib.VideoStreamInfo;
 import com.github.serezhka.airplay.server.AirPlayConsumer;
+import com.github.serezhka.airplay.server.VolumeController;
 
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
@@ -10,6 +11,7 @@ import java.util.Arrays;
 public final class FFmpegPlayerAudioRegressionTest {
     public static void main(String[] args) throws Exception {
         audioCallbacksAreForwardedToTheAudioBackend();
+        volumeChangesAreForwardedToTheAudioBackend();
         System.out.println("FFmpegPlayer audio regression tests passed");
     }
 
@@ -26,6 +28,18 @@ public final class FFmpegPlayerAudioRegressionTest {
         assertSame(streamInfo, audioBackend.streamInfo, "audio format");
         assertArrayEquals(audioFrame, audioBackend.audioFrame, "audio frame");
         assertEquals(1, audioBackend.disconnects, "audio disconnect count");
+    }
+
+    private static void volumeChangesAreForwardedToTheAudioBackend() {
+        RecordingConsumer audioBackend = new RecordingConsumer();
+        FFmpegPlayer player = new FFmpegPlayer(audioBackend);
+
+        player.setVolumeDb(-15.0);
+
+        assertEquals(1, audioBackend.volumeChanges, "volume change count");
+        if (Math.abs(-15.0 - audioBackend.volumeDb) > 0.000001) {
+            throw new AssertionError("volume was not forwarded unchanged");
+        }
     }
 
     private static AudioStreamInfo audioStreamInfo() throws Exception {
@@ -59,10 +73,18 @@ public final class FFmpegPlayerAudioRegressionTest {
         }
     }
 
-    private static final class RecordingConsumer implements AirPlayConsumer {
+    private static final class RecordingConsumer implements AirPlayConsumer, VolumeController {
         private AudioStreamInfo streamInfo;
         private byte[] audioFrame;
         private int disconnects;
+        private int volumeChanges;
+        private double volumeDb;
+
+        @Override
+        public void setVolumeDb(double volumeDb) {
+            volumeChanges++;
+            this.volumeDb = volumeDb;
+        }
 
         @Override
         public void onAudioFormat(AudioStreamInfo audioStreamInfo) {

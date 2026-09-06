@@ -2,9 +2,11 @@ package com.github.serezhka.airplay.player.gstreamer;
 
 import com.github.serezhka.airplay.lib.AudioStreamInfo;
 import com.github.serezhka.airplay.lib.VideoStreamInfo;
+import com.github.serezhka.airplay.server.VolumeController;
 import com.github.serezhka.airplay.server.AirPlayConsumer;
 import org.freedesktop.gstreamer.Buffer;
 import org.freedesktop.gstreamer.Caps;
+import org.freedesktop.gstreamer.Element;
 import org.freedesktop.gstreamer.Format;
 import org.freedesktop.gstreamer.Gst;
 import org.freedesktop.gstreamer.Pipeline;
@@ -14,7 +16,7 @@ import org.freedesktop.gstreamer.glib.GLib;
 
 import java.nio.ByteBuffer;
 
-public abstract class GstPlayer implements AirPlayConsumer {
+public abstract class GstPlayer implements AirPlayConsumer, VolumeController {
     private static final String H264_CAPS =
             "video/x-h264,colorimetry=bt709,stream-format=(string)byte-stream,alignment=(string)au";
     private static final String ALAC_CAPS =
@@ -37,6 +39,8 @@ public abstract class GstPlayer implements AirPlayConsumer {
     private final AppSrc h264Src;
     private final AppSrc alacSrc;
     private final AppSrc aacEldSrc;
+    private final Element alacVolume;
+    private final Element aacEldVolume;
 
     private final Object videoPipelineLock = new Object();
 
@@ -48,13 +52,17 @@ public abstract class GstPlayer implements AirPlayConsumer {
         configureSource(h264Src, H264_CAPS);
 
         alacPipeline = (Pipeline) Gst.parseLaunch(
-                "appsrc name=alac-src ! avdec_alac ! audioconvert ! audioresample ! autoaudiosink sync=false");
+                "appsrc name=alac-src ! avdec_alac ! audioconvert ! "
+                        + "volume name=alac-volume volume=1.0 ! audioresample ! autoaudiosink sync=false");
         alacSrc = (AppSrc) alacPipeline.getElementByName("alac-src");
+        alacVolume = (Element) alacPipeline.getElementByName("alac-volume");
         configureSource(alacSrc, ALAC_CAPS);
 
         aacEldPipeline = (Pipeline) Gst.parseLaunch(
-                "appsrc name=aac-eld-src ! avdec_aac ! audioconvert ! audioresample ! autoaudiosink sync=false");
+                "appsrc name=aac-eld-src ! avdec_aac ! audioconvert ! "
+                        + "volume name=aac-eld-volume volume=1.0 ! audioresample ! autoaudiosink sync=false");
         aacEldSrc = (AppSrc) aacEldPipeline.getElementByName("aac-eld-src");
+        aacEldVolume = (Element) aacEldPipeline.getElementByName("aac-eld-volume");
         configureSource(aacEldSrc, AAC_ELD_CAPS);
     }
 
@@ -93,6 +101,13 @@ public abstract class GstPlayer implements AirPlayConsumer {
         audioCompressionType = audioStreamInfo.getCompressionType();
         alacPipeline.play();
         aacEldPipeline.play();
+    }
+
+    @Override
+    public synchronized void setVolumeDb(double volumeDb) {
+        double linearVolume = VolumeController.dbToLinear(volumeDb);
+        alacVolume.set("volume", linearVolume);
+        aacEldVolume.set("volume", linearVolume);
     }
 
     @Override
