@@ -15,9 +15,7 @@
 
 ## 下载（EXE 安装包）
 
-**[⬇️ 前往 Releases 页面下载最新版](https://github.com/Druadach/java-airplay/releases/latest)**
-
-本仓库提供两种免配置的 Windows 分发形式。当前版本 v1.2.2 直链：
+本仓库提供两种免配置的 Windows 分发形式，下载直链：
 
 | 文件 | 类型 | 说明 |
 | --- | --- | --- |

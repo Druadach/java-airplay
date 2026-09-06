@@ -15,9 +15,7 @@ This project is modified based on [serezhka/java-airplay](https://github.com/ser
 
 ## Download (EXE Packages)
 
-**[⬇️ Get the latest build from the Releases page](https://github.com/Druadach/java-airplay/releases/latest)**
-
-This repository provides two ready-to-run Windows distributions. Direct links for the current v1.2.2 release:
+This repository provides two ready-to-run Windows distributions. Direct links:
 
 | File | Type | Description |
 | --- | --- | --- |
