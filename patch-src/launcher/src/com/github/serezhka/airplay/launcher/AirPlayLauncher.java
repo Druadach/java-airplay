@@ -24,6 +24,9 @@ public final class AirPlayLauncher {
             return;
         }
 
+        boolean minimized = hasArgument(arguments, "--minimized");
+        boolean autoStart = hasArgument(arguments, "--auto-start");
+
         Thread.setDefaultUncaughtExceptionHandler((thread, failure) ->
                 SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(
                         null,
@@ -40,7 +43,11 @@ public final class AirPlayLauncher {
                 LauncherFrame frame = new LauncherFrame(baseDirectory);
                 Runtime.getRuntime().addShutdownHook(
                         new Thread(frame::shutdownFromHook, "airplay-launcher-shutdown"));
-                frame.setVisible(true);
+
+                frame.showAtStartup(minimized);
+                if (autoStart) {
+                    frame.startFromAutoStart();
+                }
             } catch (Exception exception) {
                 JOptionPane.showMessageDialog(
                         null,
@@ -77,7 +84,18 @@ public final class AirPlayLauncher {
     }
 
     static Path resolveBaseDirectory(String[] arguments) throws IOException, URISyntaxException {
-        for (String argument : arguments) {
+        for (int index = 0; index < arguments.length; index++) {
+            String argument = arguments[index];
+            if (argument.equals("--base-dir")) {
+                if (++index >= arguments.length || arguments[index].isBlank()
+                        || arguments[index].startsWith("--")) {
+                    throw new LauncherIOException(
+                            LauncherMessages.Key.VALIDATION_INVALID_INSTALLATION, "--base-dir");
+                }
+                Path explicit = Path.of(arguments[index]).toAbsolutePath().normalize();
+                requireInstallation(explicit);
+                return explicit;
+            }
             if (argument.startsWith("--base-dir=")) {
                 Path explicit = Path.of(argument.substring("--base-dir=".length())).toAbsolutePath().normalize();
                 requireInstallation(explicit);

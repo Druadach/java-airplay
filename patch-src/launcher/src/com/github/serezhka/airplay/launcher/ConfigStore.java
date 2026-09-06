@@ -38,6 +38,8 @@ final class ConfigStore {
                 integer(properties, "airplay.fps", defaults.fps()),
                 properties.getProperty("player.implementation", defaults.playerImplementation()),
                 bool(properties, "player.gstreamer.fullscreen", defaults.startFullscreen()),
+                bool(properties, "launcher.autoStart.enabled", defaults.autoStartEnabled()),
+                bool(properties, "launcher.autoStart.runService", defaults.autoRunService()),
                 UiLanguage.fromCode(properties.getProperty("launcher.language")));
     }
 
@@ -66,6 +68,8 @@ final class ConfigStore {
         values.put("airplay.fps", Integer.toString(settings.fps()));
         values.put("player.implementation", settings.playerImplementation());
         values.put("player.gstreamer.fullscreen", Boolean.toString(settings.startFullscreen()));
+        values.put("launcher.autoStart.enabled", Boolean.toString(settings.autoStartEnabled()));
+        values.put("launcher.autoStart.runService", Boolean.toString(settings.autoRunService()));
         values.put("launcher.language", settings.language().code());
         return values;
     }

@@ -9,9 +9,7 @@
 
 本软件用于将 iPhone、iPad、Mac 投屏到 Windows 电脑上，最高支持 4K 60 帧。
 
-本项目基于原作者 [serezhka](https://github.com/serezhka) 的 [serezhka/java-airplay](https://github.com/serezhka/java-airplay) 修改，下载即可使用，已经把运行所需组件（Java 运行环境、GStreamer 播放组件）全部打包在内，无需另外安装。
-
-本项目开发过程得到 [LINUX DO 社区](https://linux.do) 的支持与认可。
+本项目基于原作者 [serezhka](https://github.com/serezhka) 的 [serezhka/java-airplay](https://github.com/serezhka/java-airplay) 修改，下载即可使用，已包含全部运行所需组件（Java 运行环境、GStreamer 播放组件）。
 
 ---
 
@@ -19,25 +17,24 @@
 
 **[⬇️ 前往 Releases 页面下载最新版](https://github.com/Druadach/java-airplay/releases/latest)**
 
-除源码外，本仓库提供两种免配置的 Windows 分发形式（均内置 JRE 与 GStreamer，目标电脑无需安装 Java）。当前版本 v1.2.0 直链：
+本仓库提供两种免配置的 Windows 分发形式。当前版本 v1.2.1 直链：
 
 | 文件 | 类型 | 说明 |
 | --- | --- | --- |
-| [AirPlayReceiver_Setup_1.2.0.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.0/AirPlayReceiver_Setup_1.2.0.exe) | 安装版 | 向导式安装：可选安装目录、创建开始菜单/桌面快捷方式、可在“设置 → 应用”中卸载；安装器会对安装目录授予普通用户写权限，运行时无需管理员即可保存设置 |
-| [AirPlayReceiver_Portable_1.2.0.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.0/AirPlayReceiver_Portable_1.2.0.zip) | 便携版 | 解压到任意目录，双击其中的 `AirPlayReceiver.exe` 即可；配置保存在同目录的 `application.properties` |
-
-安装版首次运行同样会触发 Windows 防火墙提示，请选择“允许访问”。安装包自带中/英文安装界面。
+| [AirPlayReceiver_Setup_1.2.1.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.1/AirPlayReceiver_Setup_1.2.1.exe) | 安装版 | 向导式安装：可选安装目录、创建开始菜单/桌面快捷方式、可在“设置 → 应用”中卸载；安装器会对安装目录授予普通用户写权限，运行时无需管理员即可保存设置 |
+| [AirPlayReceiver_Portable_1.2.1.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.1/AirPlayReceiver_Portable_1.2.1.zip) | 便携版 | 解压到任意目录，双击其中的 `AirPlayReceiver.exe` 即可；配置保存在同目录的 `application.properties` |
 
 ---
 
 ## 一、3 步开始使用
 
 1. **启动程序**
-   安装版：双击桌面或开始菜单的“AirPlay 接收端”快捷方式（或安装目录中的 `AirPlayReceiver.exe`）；便携版：解压后双击其中的 `AirPlayReceiver.exe`。
-   也可使用原有的 `run_airplay_gui.bat`，效果相同。启动器使用项目内置 Java，不会弹出命令行窗口。
+   安装版：双击桌面或开始菜单的“AirPlay 接收器”快捷方式（或安装目录中的 `AirPlayReceiver.exe`）；
+   便携版：解压后双击其中的 `AirPlayReceiver.exe`。
+   也可使用 `run_airplay_gui.bat`，效果相同。启动器使用项目内置 Java，不会弹出命令行窗口。
 
 2. **配置并启动**
-   可在窗口顶部随时切换“中文 / English”。设置服务名称、分辨率、帧率、播放器和启动显示模式；修改会自动保存，然后点击“启动”。每个宽度和高度候选都会标注对应的分辨率档位 `HD / FHD / 2K / 4K`（分别对应 720P、1080P、1440P 和 2160P，例如 `3840 (4K)`、`2160 (4K)`），也可直接键盘输入自定义数值。状态变为“运行中”后即可投屏。
+   可在窗口顶部随时切换“中文 / English”。设置服务名称、分辨率、帧率、播放器和启动显示模式；修改会自动保存，然后点击“启动”。每个宽度和高度候选都会标注对应的分辨率档位 `HD / FHD / 2K / 4K`（分别对应 720P、1080P、1440P 和 2160P，例如 `3840 (4K)`、`2160 (4K)`），也可直接键盘输入自定义数值。状态变为“运行中”后即可投屏。服务运行后，也可通过启动器托盘菜单直接“启动服务 / 停止服务”，无需打开主窗口。
 
 3. **在苹果设备上连接**
    确认设备和电脑连的是同一个 WiFi → 打开”控制中心” → 点击”屏幕镜像” → 选择 AirPlay 服务器名字。
@@ -45,8 +42,8 @@
 第一次启动时，Windows 会弹出防火墙提示，**请点击”允许”**。
 如果不允许，AirPlay 会搜不到这台电脑。
 
-原有的 `run_airplay_server.bat` 命令行启动方式继续保留。它读取同一个 `application.properties`，并可继续使用服务端原有托盘菜单。
-服务端口通常无需调整，因此 GUI 不显示该字段；需要修改时可编辑 `application.properties` 中的 `airplay.airtunesPort`。
+`run_airplay_server.bat` 为命令行启动方式，读取同一个 `application.properties`，并按配置保留服务端旧版托盘菜单。
+服务端口很少需要修改，因此未在 GUI 中展示；如需自定义端口，编辑 `application.properties` 中的 `airplay.airtunesPort`。
 
 ---
 
@@ -87,10 +84,12 @@ player.implementation=gstreamer   # 播放方式，支持 gstreamer、ffmpeg、v
 player.gstreamer.fullscreen=false # GStreamer 模式是否全屏
 player.tray.enabled=true          # 是否显示系统托盘图标
 launcher.language=zh-CN           # GUI 语言：zh-CN 或 en-US
+launcher.autoStart.enabled=false  # 开机自动启动启动器（登记登录启动项）
+launcher.autoStart.runService=false # 启动器运行后自动启动投屏服务
 ```
 
 关于分辨率和帧率的说明：
-这三个值只是**告诉设备“AirPlay 接收端这边支持什么”**，最终画面质量由 AirPlay 发送端决定，软件本身不会缩放或转码。
+这三个值只是**告诉设备“AirPlay 接收器这边支持什么”**，最终画面质量由 AirPlay 发送端决定，软件本身不会缩放或转码。
 本包实测跑通的最高档是 **3840 × 2160 / 60 帧**。
 
 ---
@@ -260,4 +259,3 @@ FFmpeg 音频路径已用真实 AirPlay 发送端以 AAC-ELD 44.1 kHz 立体声�
 组成。完整源码构建请参考上游仓库。
 
 许可证：MIT，见 [LICENSE](LICENSE)。
-```

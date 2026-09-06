@@ -10,6 +10,8 @@ record LauncherSettings(
         int fps,
         String playerImplementation,
         boolean startFullscreen,
+        boolean autoStartEnabled,
+        boolean autoRunService,
         UiLanguage language) {
 
     private static final Set<String> PLAYERS = Set.of("gstreamer", "ffmpeg", "vlc", "h264-dump");
@@ -38,6 +40,6 @@ record LauncherSettings(
 
     static LauncherSettings defaults() {
         return new LauncherSettings(
-                "Mukar", 5001, 1920, 1080, 60, "gstreamer", false, UiLanguage.systemDefault());
+                "Mukar", 5001, 1920, 1080, 60, "gstreamer", false, false, false, UiLanguage.systemDefault());
     }
 }

@@ -16,12 +16,17 @@ $mainSourceRoot = Join-Path $patchRoot 'patch-src\main\java'
 $testSourceRoot = Join-Path $patchRoot 'patch-src\test\java'
 $launcherSourceRoot = Join-Path $patchRoot 'patch-src\launcher\src'
 $launcherTestRoot = Join-Path $patchRoot 'patch-src\launcher\test'
+$trayIconSource = Join-Path $patchRoot 'packaging\tray_icon.png'
 
 foreach ($requiredPath in @($sourceJar, $javac, $java, $javaw, $jar, $mainSourceRoot, $testSourceRoot,
         $launcherSourceRoot, $launcherTestRoot)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "Required path does not exist: $requiredPath"
     }
+}
+
+if (-not (Test-Path -LiteralPath $trayIconSource)) {
+    throw "Launcher icon does not exist: $trayIconSource. Run packaging/make_icon.py first."
 }
 
 Add-Type -AssemblyName System.IO.Compression
@@ -39,6 +44,7 @@ $appClassesDir = Join-Path $patchTempRoot 'app-classes'
 $candidateJar = Join-Path $patchTempRoot 'java-airplay-server-fixed.jar'
 $candidateLauncherJar = Join-Path $patchTempRoot 'java-airplay-launcher.jar'
 $launcherValidationDir = Join-Path $patchTempRoot 'launcher-validation'
+$nativeLauncherTestExe = Join-Path $patchTempRoot 'launcher-argument-test.exe'
 
 try {
     foreach ($directory in @($libraryDir, $mainOutput, $testOutput, $launcherOutput,
@@ -84,6 +90,9 @@ try {
         $outerJar.Dispose()
     }
 
+    $launcherIcon = Join-Path $appClassesDir 'menu\tray_icon.png'
+    Copy-Item -LiteralPath $trayIconSource -Destination $launcherIcon -Force
+
     $launcherSources = @(Get-ChildItem -LiteralPath $launcherSourceRoot -Recurse -Filter '*.java' |
             ForEach-Object FullName)
     & $javac --release 17 -encoding UTF-8 -d $launcherOutput $launcherSources
@@ -102,6 +111,30 @@ try {
             com.github.serezhka.airplay.launcher.LauncherCoreTest
     if ($LASTEXITCODE -ne 0) {
         throw "Launcher tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $java '--add-opens=java.desktop/sun.awt.windows=ALL-UNNAMED' `
+            '--add-opens=java.desktop/sun.awt=ALL-UNNAMED' `
+            -cp "$launcherTestOutput;$launcherOutput" `
+            com.github.serezhka.airplay.launcher.NativeMenuFontTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Native menu font configuration tests failed with exit code $LASTEXITCODE"
+    }
+
+    $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+    if (-not (Test-Path -LiteralPath $csc)) {
+        throw "Required native compiler does not exist: $csc"
+    }
+    & $csc -nologo -target:exe -main:AirPlayLauncher.LauncherArgumentTest `
+            '-r:System.Windows.Forms.dll' "-out:$nativeLauncherTestExe" `
+            (Join-Path $patchRoot 'packaging\AirPlayReceiver.cs') `
+            (Join-Path $patchRoot 'packaging\LauncherArgumentTest.cs')
+    if ($LASTEXITCODE -ne 0) {
+        throw "Native launcher argument test compilation failed with exit code $LASTEXITCODE"
+    }
+    & $nativeLauncherTestExe
+    if ($LASTEXITCODE -ne 0) {
+        throw "Native launcher argument tests failed with exit code $LASTEXITCODE"
     }
 
     $mainSources = @(Get-ChildItem -LiteralPath $mainSourceRoot -Recurse -Filter '*.java' |
@@ -224,6 +257,7 @@ try {
     $ffmpegEntry = 'BOOT-INF/lib/ffmpeg-1.0.6.jar'
     $playerConfigEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/app/config/PlayerConfig.class'
     $systemTrayMenuEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/app/menu/SystemTrayMenu.class'
+    $trayIconEntry = 'BOOT-INF/classes/menu/tray_icon.png'
     $localControlServerEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/app/control/LocalControlServer.class'
     $localControlResultEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/app/control/LocalControlServer$CommandResult.class'
     $localControlRejectedEntry = 'BOOT-INF/classes/com/github/serezhka/airplay/app/control/LocalControlServer$RequestRejectedException.class'
@@ -237,6 +271,7 @@ try {
             (Join-Path $fatJarStage 'BOOT-INF\classes\com\github\serezhka\airplay\app\control'))
     [void][IO.Directory]::CreateDirectory(
             (Join-Path $fatJarStage 'BOOT-INF\classes\com\github\serezhka\airplay\app\lifecycle'))
+    [void][IO.Directory]::CreateDirectory((Join-Path $fatJarStage 'BOOT-INF\classes\menu'))
     Copy-Item -LiteralPath $patchedServerJar -Destination (Join-Path $fatJarStage $serverEntry)
     Copy-Item -LiteralPath $patchedGstreamerJar -Destination (Join-Path $fatJarStage $gstreamerEntry)
     Copy-Item -LiteralPath $patchedFfmpegJar -Destination (Join-Path $fatJarStage $ffmpegEntry)
@@ -252,6 +287,7 @@ try {
             -Destination (Join-Path $fatJarStage $localControlRejectedEntry)
     Copy-Item -LiteralPath (Join-Path $mainOutput 'com\github\serezhka\airplay\app\lifecycle\ApplicationShutdown.class') `
             -Destination (Join-Path $fatJarStage $applicationShutdownEntry)
+    Copy-Item -LiteralPath $launcherIcon -Destination (Join-Path $fatJarStage $trayIconEntry)
 
     $stagedAppClasses = Join-Path $fatJarStage 'BOOT-INF\classes'
     & $java -cp "$testOutput;$stagedAppClasses;$patchedGstreamerJar;$appClassesDir;$libraryDir\*" `
@@ -286,7 +322,7 @@ try {
     Push-Location $fatJarStage
     try {
         & $jar --update --file $candidateJar --no-compress `
-                $serverEntry $gstreamerEntry $ffmpegEntry $playerConfigEntry $systemTrayMenuEntry `
+                $serverEntry $gstreamerEntry $ffmpegEntry $playerConfigEntry $systemTrayMenuEntry $trayIconEntry `
                 $localControlServerEntry $localControlResultEntry $localControlRejectedEntry `
                 $applicationShutdownEntry
         if ($LASTEXITCODE -ne 0) {
@@ -301,7 +337,6 @@ try {
         throw "Patched JAR validation failed with exit code $LASTEXITCODE"
     }
 
-    $launcherIcon = Join-Path $appClassesDir 'menu\tray_icon.png'
     if (-not (Test-Path -LiteralPath $launcherIcon)) {
         throw "Launcher icon does not exist: $launcherIcon"
     }

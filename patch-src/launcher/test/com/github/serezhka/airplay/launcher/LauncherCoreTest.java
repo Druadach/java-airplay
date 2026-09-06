@@ -30,21 +30,60 @@ public final class LauncherCoreTest {
         configStorePreservesExternalContent();
         guiSavePreservesHiddenPort();
         languageLoadsBeforeInvalidSettings();
+        startupUsesBundledRuntimeAndExplicitDirectory();
         controlClientUsesAuthenticatedLoopbackProtocol();
         System.out.println("Launcher core tests passed");
     }
 
+    private static void startupUsesBundledRuntimeAndExplicitDirectory() throws Exception {
+        Path directory = Files.createTempDirectory("AirPlay startup with spaces ");
+        try {
+            Path java = directory.resolve("jre/bin/javaw.exe");
+            Files.createDirectories(java.getParent());
+            Files.createFile(java);
+            Files.createFile(directory.resolve("java-airplay-server-fixed.jar"));
+            Path jar = Files.createFile(directory.resolve("java-airplay-launcher.jar"));
+            Path exe = Files.createFile(directory.resolve("AirPlayReceiver.exe"));
+            assertEquals(directory, AirPlayLauncher.resolveBaseDirectory(
+                    new String[]{"--base-dir", directory.toString()}), "separate directory argument");
+            assertEquals(directory, AirPlayLauncher.resolveBaseDirectory(
+                    new String[]{"--base-dir=" + directory}), "joined directory argument");
+            try {
+                AirPlayLauncher.resolveBaseDirectory(new String[]{"--base-dir"});
+                throw new AssertionError("Missing explicit directory was ignored");
+            } catch (IOException expected) {
+                // Missing arguments must not silently use another installation.
+            }
+            String jarCommand = AutoStartManager.startupCommand(jar, true);
+            assertContains(jarCommand, "\"" + java + "\" -Dfile.encoding=UTF-8 -jar \"" + jar + "\"",
+                    "startup uses bundled Java for jar");
+            assertContains(jarCommand, "\"--base-dir=" + directory + "\"", "startup directory");
+            assertContains(jarCommand, "--minimized --auto-start", "jar startup flags");
+            assertEquals("\"" + exe + "\" --minimized --auto-start",
+                    AutoStartManager.startupCommand(exe, true), "exe startup flags");
+            LauncherSettings defaults = LauncherSettings.defaults();
+            ConfigStore store = new ConfigStore(directory.resolve("application.properties"));
+            store.save(new LauncherSettings(defaults.serverName(), defaults.airtunesPort(),
+                    defaults.width(), defaults.height(), defaults.fps(), defaults.playerImplementation(),
+                    defaults.startFullscreen(), true, true, defaults.language()));
+            assertEquals(true, store.load().autoStartEnabled(), "startup preference persisted");
+            assertEquals(true, store.load().autoRunService(), "auto-run preference persisted");
+        } finally {
+            deleteTree(directory);
+        }
+    }
+
     private static void settingsValidationRejectsInvalidValues() {
         expectFailure(() -> new LauncherSettings(
-                "", 5001, 1920, 1080, 60, "gstreamer", false, UiLanguage.ZH_CN));
+                "", 5001, 1920, 1080, 60, "gstreamer", false, false, false, UiLanguage.ZH_CN));
         expectFailure(() -> new LauncherSettings(
-                "AirPlay", 0, 1920, 1080, 60, "gstreamer", false, UiLanguage.ZH_CN));
+                "AirPlay", 0, 1920, 1080, 60, "gstreamer", false, false, false, UiLanguage.ZH_CN));
         expectFailure(() -> new LauncherSettings(
-                "AirPlay", 5001, 10, 1080, 60, "gstreamer", false, UiLanguage.ZH_CN));
+                "AirPlay", 5001, 10, 1080, 60, "gstreamer", false, false, false, UiLanguage.ZH_CN));
         expectFailure(() -> new LauncherSettings(
-                "AirPlay", 5001, 1920, 1080, 0, "gstreamer", false, UiLanguage.ZH_CN));
+                "AirPlay", 5001, 1920, 1080, 0, "gstreamer", false, false, false, UiLanguage.ZH_CN));
         expectFailure(() -> new LauncherSettings(
-                "AirPlay", 5001, 1920, 1080, 60, "unknown", false, UiLanguage.ZH_CN));
+                "AirPlay", 5001, 1920, 1080, 60, "unknown", false, false, false, UiLanguage.ZH_CN));
     }
 
     private static void editableNumericFieldsAcceptCustomValues() {
@@ -98,7 +137,7 @@ public final class LauncherCoreTest {
             assertEquals(UiLanguage.ZH_CN, loaded.language(), "loaded language");
 
             LauncherSettings replacement = new LauncherSettings(
-                    "Living Room", 7000, 3840, 2160, 60, "gstreamer", true, UiLanguage.EN_US);
+                    "Living Room", 7000, 3840, 2160, 60, "gstreamer", true, false, false, UiLanguage.EN_US);
             store.save(replacement);
             String saved = Files.readString(path, StandardCharsets.UTF_8);
             assertContains(saved, "# retained comment", "comment");
@@ -155,7 +194,7 @@ public final class LauncherCoreTest {
             ConfigStore store = new ConfigStore(path);
             store.saveGuiSettings(new LauncherSettings(
                     "Updated", 5001, 3440, 1440, 75,
-                    "gstreamer", false, UiLanguage.EN_US));
+                    "gstreamer", false, false, false, UiLanguage.EN_US));
 
             String saved = Files.readString(path, StandardCharsets.UTF_8);
             assertContains(saved, "airplay.airtunesPort = 7001", "hidden port source line");
@@ -170,7 +209,7 @@ public final class LauncherCoreTest {
             ConfigStore noPortStore = new ConfigStore(noPortPath);
             noPortStore.saveGuiSettings(new LauncherSettings(
                     "No Port", 5001, 1920, 1080, 60,
-                    "gstreamer", false, UiLanguage.ZH_CN));
+                    "gstreamer", false, false, false, UiLanguage.ZH_CN));
             String noPortSaved = Files.readString(noPortPath, StandardCharsets.UTF_8);
             assertNotContains(noPortSaved, "airplay.airtunesPort", "absent hidden port");
             assertEquals(5001, noPortStore.load().airtunesPort(), "default hidden port");
@@ -225,24 +264,24 @@ public final class LauncherCoreTest {
         LauncherTray.Labels chinese = LauncherTray.labels(UiLanguage.ZH_CN, running);
         LauncherTray.Labels english = LauncherTray.labels(UiLanguage.EN_US, running);
 
-        assertEquals("打开", chinese.open(), "Chinese tray open");
-        assertEquals("启动", chinese.start(), "Chinese tray start");
-        assertEquals("停止", chinese.stop(), "Chinese tray stop");
-        assertEquals("重启", chinese.restart(), "Chinese tray restart");
+        assertEquals("显示主窗口", chinese.open(), "Chinese tray open");
+        assertEquals("启动服务", chinese.start(), "Chinese tray start");
+        assertEquals("停止服务", chinese.stop(), "Chinese tray stop");
         assertEquals("全屏", chinese.fullscreen(), "Chinese tray fullscreen");
-        assertEquals("窗口模式", chinese.windowed(), "Chinese tray windowed");
+        assertEquals("设置...", chinese.settings(), "Chinese tray settings");
+        assertEquals("关于", chinese.about(), "Chinese tray about");
         assertEquals("退出", chinese.exit(), "Chinese tray exit");
-        assertContains(chinese.tooltip(), "Java AirPlay 启动器", "Chinese tray title");
+        assertContains(chinese.tooltip(), "AirPlay 接收器", "Chinese tray title");
         assertContains(chinese.tooltip(), "运行中", "Chinese tray state");
 
-        assertEquals("Open", english.open(), "English tray open");
-        assertEquals("Start", english.start(), "English tray start");
-        assertEquals("Stop", english.stop(), "English tray stop");
-        assertEquals("Restart", english.restart(), "English tray restart");
+        assertEquals("Show Main Window", english.open(), "English tray open");
+        assertEquals("Start Service", english.start(), "English tray start");
+        assertEquals("Stop Service", english.stop(), "English tray stop");
         assertEquals("Fullscreen", english.fullscreen(), "English tray fullscreen");
-        assertEquals("Windowed", english.windowed(), "English tray windowed");
+        assertEquals("Settings...", english.settings(), "English tray settings");
+        assertEquals("About", english.about(), "English tray about");
         assertEquals("Exit", english.exit(), "English tray exit");
-        assertContains(english.tooltip(), "Java AirPlay Launcher", "English tray title");
+        assertContains(english.tooltip(), "AirPlay Receiver", "English tray title");
         assertContains(english.tooltip(), "Running", "English tray state");
     }
 

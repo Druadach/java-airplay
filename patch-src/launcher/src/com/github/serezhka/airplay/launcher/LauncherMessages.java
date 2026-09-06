@@ -18,6 +18,8 @@ public final class LauncherMessages {
         PLAYER_LABEL,
         DIRECTORY_LABEL,
         START_FULLSCREEN,
+        AUTO_START_LABEL,
+        AUTO_START_AND_RUN,
         SAVE_CONFIGURATION,
         START,
         STOP,
@@ -28,6 +30,11 @@ public final class LauncherMessages {
         RUNTIME_LOG,
         CLEAR,
         TRAY_OPEN,
+        TRAY_START,
+        TRAY_STOP,
+        TRAY_SETTINGS,
+        TRAY_ABOUT,
+        ABOUT_MESSAGE,
         TRAY_EXIT,
 
         STATE_STOPPED,
@@ -147,7 +154,7 @@ public final class LauncherMessages {
 
     private static EnumMap<Key, String> chinese() {
         EnumMap<Key, String> messages = new EnumMap<>(Key.class);
-        messages.put(Key.APPLICATION_TITLE, "Java AirPlay 启动器");
+        messages.put(Key.APPLICATION_TITLE, "AirPlay 接收器");
         messages.put(Key.LANGUAGE_LABEL, "语言");
         messages.put(Key.CONFIGURATION_SECTION, "服务配置");
         messages.put(Key.SERVER_NAME_LABEL, "服务名称");
@@ -158,6 +165,8 @@ public final class LauncherMessages {
         messages.put(Key.PLAYER_LABEL, "播放器");
         messages.put(Key.DIRECTORY_LABEL, "目录: {0}");
         messages.put(Key.START_FULLSCREEN, "启动时全屏");
+        messages.put(Key.AUTO_START_LABEL, "开机自动启动");
+        messages.put(Key.AUTO_START_AND_RUN, "启动后自动运行服务");
         messages.put(Key.SAVE_CONFIGURATION, "保存配置");
         messages.put(Key.START, "启动");
         messages.put(Key.STOP, "停止");
@@ -167,7 +176,12 @@ public final class LauncherMessages {
         messages.put(Key.WINDOWED, "窗口模式");
         messages.put(Key.RUNTIME_LOG, "运行日志");
         messages.put(Key.CLEAR, "清空");
-        messages.put(Key.TRAY_OPEN, "打开");
+        messages.put(Key.TRAY_OPEN, "显示主窗口");
+        messages.put(Key.TRAY_START, "启动服务");
+        messages.put(Key.TRAY_STOP, "停止服务");
+        messages.put(Key.TRAY_SETTINGS, "设置...");
+        messages.put(Key.TRAY_ABOUT, "关于");
+        messages.put(Key.ABOUT_MESSAGE, "AirPlay 接收器 v1.2.1\n\n接收 Apple 设备的音视频与屏幕镜像\n基于 serezhka/java-airplay，由 Druadach 维护\n\nhttps://github.com/Druadach/java-airplay");
         messages.put(Key.TRAY_EXIT, "退出");
 
         messages.put(Key.STATE_STOPPED, "未启动");
@@ -191,8 +205,8 @@ public final class LauncherMessages {
 
         messages.put(Key.DIALOG_SAVE_SUCCESS_TITLE, "保存完成");
         messages.put(Key.DIALOG_SAVE_SUCCESS_MESSAGE, "配置已保存。已运行的服务需要重启后应用配置。");
-        messages.put(Key.DIALOG_LAUNCHER_ERROR_TITLE, "Java AirPlay 启动器错误");
-        messages.put(Key.DIALOG_LAUNCHER_START_ERROR_TITLE, "无法启动 Java AirPlay 启动器");
+        messages.put(Key.DIALOG_LAUNCHER_ERROR_TITLE, "AirPlay 接收器错误");
+        messages.put(Key.DIALOG_LAUNCHER_START_ERROR_TITLE, "无法启动 AirPlay 接收器");
         messages.put(Key.DIALOG_SAVE_ERROR_TITLE, "无法保存配置");
         messages.put(Key.DIALOG_START_ERROR_TITLE, "启动服务失败");
         messages.put(Key.DIALOG_STOP_ERROR_TITLE, "停止服务失败");
@@ -246,7 +260,7 @@ public final class LauncherMessages {
 
     private static EnumMap<Key, String> english() {
         EnumMap<Key, String> messages = new EnumMap<>(Key.class);
-        messages.put(Key.APPLICATION_TITLE, "Java AirPlay Launcher");
+        messages.put(Key.APPLICATION_TITLE, "AirPlay Receiver");
         messages.put(Key.LANGUAGE_LABEL, "Language");
         messages.put(Key.CONFIGURATION_SECTION, "Server Configuration");
         messages.put(Key.SERVER_NAME_LABEL, "Server Name");
@@ -257,6 +271,8 @@ public final class LauncherMessages {
         messages.put(Key.PLAYER_LABEL, "Player");
         messages.put(Key.DIRECTORY_LABEL, "Directory: {0}");
         messages.put(Key.START_FULLSCREEN, "Start in Fullscreen");
+        messages.put(Key.AUTO_START_LABEL, "Start automatically on boot");
+        messages.put(Key.AUTO_START_AND_RUN, "Auto-run service after startup");
         messages.put(Key.SAVE_CONFIGURATION, "Save Configuration");
         messages.put(Key.START, "Start");
         messages.put(Key.STOP, "Stop");
@@ -266,7 +282,12 @@ public final class LauncherMessages {
         messages.put(Key.WINDOWED, "Windowed");
         messages.put(Key.RUNTIME_LOG, "Runtime Log");
         messages.put(Key.CLEAR, "Clear");
-        messages.put(Key.TRAY_OPEN, "Open");
+        messages.put(Key.TRAY_OPEN, "Show Main Window");
+        messages.put(Key.TRAY_START, "Start Service");
+        messages.put(Key.TRAY_STOP, "Stop Service");
+        messages.put(Key.TRAY_SETTINGS, "Settings...");
+        messages.put(Key.TRAY_ABOUT, "About");
+        messages.put(Key.ABOUT_MESSAGE, "AirPlay Receiver v1.2.1\n\nReceive media and screen mirroring from Apple devices\nBased on serezhka/java-airplay, maintained by Druadach\n\nhttps://github.com/Druadach/java-airplay");
         messages.put(Key.TRAY_EXIT, "Exit");
 
         messages.put(Key.STATE_STOPPED, "Stopped");
@@ -291,8 +312,8 @@ public final class LauncherMessages {
         messages.put(Key.DIALOG_SAVE_SUCCESS_TITLE, "Saved");
         messages.put(Key.DIALOG_SAVE_SUCCESS_MESSAGE,
                 "Configuration saved. Restart the running service to apply the changes.");
-        messages.put(Key.DIALOG_LAUNCHER_ERROR_TITLE, "Java AirPlay Launcher Error");
-        messages.put(Key.DIALOG_LAUNCHER_START_ERROR_TITLE, "Unable to Start Java AirPlay Launcher");
+        messages.put(Key.DIALOG_LAUNCHER_ERROR_TITLE, "AirPlay Receiver Error");
+        messages.put(Key.DIALOG_LAUNCHER_START_ERROR_TITLE, "Unable to Start AirPlay Receiver");
         messages.put(Key.DIALOG_SAVE_ERROR_TITLE, "Unable to Save Configuration");
         messages.put(Key.DIALOG_START_ERROR_TITLE, "Unable to Start Service");
         messages.put(Key.DIALOG_STOP_ERROR_TITLE, "Unable to Stop Service");

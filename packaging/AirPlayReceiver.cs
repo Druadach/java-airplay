@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Windows.Forms;
 
 namespace AirPlayLauncher
@@ -21,7 +22,7 @@ namespace AirPlayLauncher
                 MessageBox.Show(
                     "未找到 Java 运行环境。\n请将本程序与 jre 文件夹放在同一目录下。\n\n" +
                     "Bundled Java runtime was not found next to this exe, nor in any parent folder.",
-                    "AirPlay 接收端 / AirPlay Receiver",
+                    "AirPlay 接收器 / AirPlay Receiver",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 1;
             }
@@ -35,7 +36,7 @@ namespace AirPlayLauncher
                 MessageBox.Show(
                     "未找到 Java 运行环境：\n" + javaExe +
                     "\n\nBundled Java runtime was not found.",
-                    "AirPlay 接收端 / AirPlay Receiver",
+                    "AirPlay 接收器 / AirPlay Receiver",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 1;
             }
@@ -47,7 +48,7 @@ namespace AirPlayLauncher
                 MessageBox.Show(
                     "未找到主程序 JAR：\n" + jar +
                     "\n请确认程序目录完整。\n\nRequired jar was not found.",
-                    "AirPlay 接收端 / AirPlay Receiver",
+                    "AirPlay 接收器 / AirPlay Receiver",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 1;
             }
@@ -55,7 +56,7 @@ namespace AirPlayLauncher
             var psi = new ProcessStartInfo
             {
                 FileName = javaExe,
-                Arguments = "-Dfile.encoding=UTF-8 -jar \"" + jar + "\" --base-dir \"" + appDir + "\"",
+                Arguments = BuildJavaArguments(jar, appDir, args),
                 UseShellExecute = false,
                 WorkingDirectory = appDir,
             };
@@ -77,11 +78,39 @@ namespace AirPlayLauncher
             catch (Exception ex)
             {
                 MessageBox.Show("启动失败 / Failed to start:\n" + ex.Message,
-                    "AirPlay 接收端 / AirPlay Receiver",
+                    "AirPlay 接收器 / AirPlay Receiver",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 1;
             }
             return 0;
+        }
+
+        internal static string BuildJavaArguments(string jar, string appDir, string[] args)
+        {
+            var command = new StringBuilder("-Dfile.encoding=UTF-8 -jar ");
+            command.Append(QuoteArgument(jar)).Append(" --base-dir ").Append(QuoteArgument(appDir));
+            foreach (string argument in args)
+                command.Append(' ').Append(QuoteArgument(argument));
+            return command.ToString();
+        }
+
+        // Windows command lines double backslashes before quotes and the closing quote.
+        private static string QuoteArgument(string argument)
+        {
+            var quoted = new StringBuilder("\"");
+            int backslashes = 0;
+            foreach (char character in argument)
+            {
+                if (character == '\\')
+                {
+                    backslashes++;
+                    continue;
+                }
+                quoted.Append('\\', character == '"' ? backslashes * 2 + 1 : backslashes);
+                quoted.Append(character);
+                backslashes = 0;
+            }
+            return quoted.Append('\\', backslashes * 2).Append('"').ToString();
         }
 
         static string FindAppDir(string start)

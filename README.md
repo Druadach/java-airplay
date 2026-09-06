@@ -9,9 +9,7 @@ English | [简体中文](README.zh-CN.md)
 
 This software allows you to mirror iPhone, iPad, and Mac screens to a Windows PC, supporting up to 4K @ 60 FPS.
 
-This project is modified based on the original project [serezhka/java-airplay](https://github.com/serezhka/java-airplay) by [serezhka](https://github.com/serezhka). All required runtime components (Java Runtime Environment and GStreamer playback components) are pre-packaged. No additional installation is required—just download and run out of the box.
-
-This project's development was supported by and is acknowledged in the [LINUX DO community](https://linux.do).
+This project is modified based on [serezhka/java-airplay](https://github.com/serezhka/java-airplay) by [serezhka](https://github.com/serezhka). Download and run it directly; all required runtime components (Java Runtime Environment and GStreamer playback components) are included.
 
 ---
 
@@ -19,14 +17,12 @@ This project's development was supported by and is acknowledged in the [LINUX DO
 
 **[⬇️ Get the latest build from the Releases page](https://github.com/Druadach/java-airplay/releases/latest)**
 
-Besides the sources, this repository ships two ready-to-run Windows distributions (both bundle the JRE and GStreamer runtime, so no Java install is needed on the target PC). Direct links for the current v1.2.0 release:
+This repository provides two ready-to-run Windows distributions. Direct links for the current v1.2.1 release:
 
 | File | Type | Description |
 | --- | --- | --- |
-| [AirPlayReceiver_Setup_1.2.0.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.0/AirPlayReceiver_Setup_1.2.0.exe) | Installer | Guided setup: choose the install folder, create Start-menu/desktop shortcuts, uninstall from "Settings → Apps"; the installer grants write permission on the install folder so settings can be saved without admin rights |
-| [AirPlayReceiver_Portable_1.2.0.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.0/AirPlayReceiver_Portable_1.2.0.zip) | Portable | Extract anywhere and double-click `AirPlayReceiver.exe`; configuration is kept in `application.properties` next to the exe |
-
-The installer shows its wizard in English or Chinese. The first launch still triggers the Windows Firewall prompt — click "Allow access".
+| [AirPlayReceiver_Setup_1.2.1.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.1/AirPlayReceiver_Setup_1.2.1.exe) | Installer | Guided setup: choose the install folder, create Start-menu/desktop shortcuts, uninstall from "Settings → Apps"; the installer grants write permission on the install folder so settings can be saved without admin rights |
+| [AirPlayReceiver_Portable_1.2.1.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.1/AirPlayReceiver_Portable_1.2.1.zip) | Portable | Extract anywhere and double-click `AirPlayReceiver.exe`; configuration is kept in `application.properties` next to the exe |
 
 ---
 
@@ -37,7 +33,7 @@ The installer shows its wizard in English or Chinese. The first launch still tri
    The original `run_airplay_gui.bat` works identically. The launcher uses the bundled Java runtime and does not open a command prompt window.
 
 2. **Configure and Start**
-   Switch between `中文` and `English` from the top of the window at any time. Set the server name, resolution, frame rate, player, and startup display mode; changes are saved automatically. Then click `Start`. Each width and height choice is labeled with its resolution tier (`HD / FHD / 2K / 4K` — 720P, 1080P, 1440P and 2160P respectively; for example `3840 (4K)` and `2160 (4K)`) and remains editable for custom keyboard input. The status changes to `Running` when AirPlay is ready.
+   Switch between `中文` and `English` from the top of the window at any time. Set the server name, resolution, frame rate, player, and startup display mode; changes are saved automatically. Then click `Start`. Each width and height choice is labeled with its resolution tier (`HD / FHD / 2K / 4K` — 720P, 1080P, 1440P and 2160P respectively; for example `3840 (4K)` and `2160 (4K)`) and remains editable for custom keyboard input. The status changes to `Running` when AirPlay is ready. While running, the service can also be started or stopped directly from the launcher tray menu without opening the main window.
 
 3. **Connect from Apple Devices**
    Ensure your mobile device/Mac and PC are connected to the same Wi-Fi network → Open "Control Center" → Tap "Screen Mirroring" → Select your AirPlay server name.
@@ -45,7 +41,6 @@ The installer shows its wizard in English or Chinese. The first launch still tri
 > **Note:** On the first run, Windows Firewall will display a security prompt. **Please click "Allow access."** If denied, AirPlay will not be able to discover this PC.
 
 The original `run_airplay_server.bat` command-line launcher remains available. It reads the same `application.properties` file and keeps the server's legacy tray menu enabled when configured.
-The server port rarely needs adjustment, so it is hidden from the GUI. Edit `airplay.airtunesPort` in `application.properties` when a custom port is required.
 
 ---
 
@@ -85,6 +80,8 @@ player.implementation=gstreamer   # Player backend (gstreamer and ffmpeg are ver
 player.gstreamer.fullscreen=false # Use borderless fullscreen with GStreamer
 player.tray.enabled=true          # Enable or disable system tray icon
 launcher.language=en-US           # GUI language: zh-CN or en-US
+launcher.autoStart.enabled=false  # Launch the app at login (adds a registry run entry)
+launcher.autoStart.runService=false # Auto-start the AirPlay service when the app launches
 ```
 
 **Regarding Resolution and Frame Rate:**

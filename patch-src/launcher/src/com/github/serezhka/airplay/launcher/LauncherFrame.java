@@ -83,6 +83,8 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
     private final JComboBox<String> playerCombo = new JComboBox<>(
             new String[]{"gstreamer", "ffmpeg", "vlc", "h264-dump"});
     private final JCheckBox startFullscreenCheck = new JCheckBox();
+    private final JCheckBox autoStartCheck = new JCheckBox();
+    private final JCheckBox autoRunServiceCheck = new JCheckBox();
     private final JButton startButton = new JButton();
     private final JButton stopButton = new JButton();
     private final JButton restartButton = new JButton();
@@ -105,7 +107,7 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
     private int airtunesPort = 5001;
 
     LauncherFrame(Path baseDirectory) throws IOException {
-        super("Java AirPlay Launcher");
+        super("AirPlay Receiver");
         this.baseDirectory = baseDirectory.toAbsolutePath().normalize();
         configStore = new ConfigStore(this.baseDirectory.resolve("application.properties"));
         LauncherSettings settings = configStore.load();
@@ -238,6 +240,10 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
         constraints.gridx = 0;
         form.add(startFullscreenCheck, constraints);
         constraints.gridy++;
+        form.add(autoStartCheck, constraints);
+        constraints.gridy++;
+        form.add(autoRunServiceCheck, constraints);
+        constraints.gridy++;
         constraints.weighty = 1;
         constraints.anchor = GridBagConstraints.NORTH;
         baseLabel.setToolTipText(baseDirectory.toString());
@@ -309,8 +315,8 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
         startButton.addActionListener(event -> start());
         stopButton.addActionListener(event -> stop());
         restartButton.addActionListener(event -> restart());
-        fullscreenButton.addActionListener(event -> fullscreen(true));
-        windowedButton.addActionListener(event -> fullscreen(false));
+        fullscreenButton.addActionListener(event -> toggleFullscreen(true));
+        windowedButton.addActionListener(event -> toggleFullscreen(false));
         playerCombo.addActionListener(event -> updateConfigAvailability());
         languageCombo.addActionListener(event -> {
             if (languageChangesEnabled) {
@@ -342,6 +348,10 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
         bindEditorDocument(fpsCombo, listener);
         playerCombo.addActionListener(event -> scheduleAutoSave());
         startFullscreenCheck.addActionListener(event -> scheduleAutoSave());
+        autoStartCheck.addActionListener(event -> {
+            applyAutoStartRegistry();
+        });
+        autoRunServiceCheck.addActionListener(event -> scheduleAutoSave());
     }
 
     private static void bindEditorDocument(JComboBox<?> combo, DocumentListener listener) {
@@ -382,6 +392,8 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
                 readEditableInteger(fpsCombo, LauncherMessages.Key.FPS_LABEL),
                 (String) playerCombo.getSelectedItem(),
                 startFullscreenCheck.isSelected(),
+                autoStartCheck.isSelected(),
+                autoRunServiceCheck.isSelected(),
                 language);
     }
 
@@ -393,6 +405,8 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
         fpsCombo.setSelectedItem(settings.fps());
         playerCombo.setSelectedItem(settings.playerImplementation());
         startFullscreenCheck.setSelected(settings.startFullscreen());
+        autoStartCheck.setSelected(settings.autoStartEnabled());
+        autoRunServiceCheck.setSelected(settings.autoRunService());
         changingLanguage = true;
         try {
             language = settings.language();
@@ -492,29 +506,42 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
     }
 
     @Override
-    public void restart() {
+    public void toggleFullscreen(boolean fullscreen) {
         if (quitting.get()) {
             return;
         }
-        if (!saveConfiguration()) {
-            return;
+        processManager.setFullscreenAsync(fullscreen).whenComplete((actual, failure) ->
+                SwingUtilities.invokeLater(() -> {
+                    applySnapshot(processManager.snapshot());
+                    if (failure != null) {
+                        showError(fullscreen
+                                ? LauncherMessages.Key.DIALOG_FULLSCREEN_ERROR_TITLE
+                                : LauncherMessages.Key.DIALOG_WINDOWED_ERROR_TITLE, unwrap(failure));
+                    }
+                }));
+    }
+
+    private void restart() {
+        if (!quitting.get() && saveConfiguration()) {
+            observe(processManager.restartAsync(), LauncherMessages.Key.DIALOG_RESTART_ERROR_TITLE);
         }
-        observe(processManager.restartAsync(), LauncherMessages.Key.DIALOG_RESTART_ERROR_TITLE);
     }
 
     @Override
-    public void fullscreen(boolean fullscreen) {
+    public void settings() {
+        showWindow();
+        SwingUtilities.invokeLater(serverNameField::requestFocusInWindow);
+    }
+
+    @Override
+    public void about() {
         if (quitting.get()) {
             return;
         }
-        processManager.setFullscreenAsync(fullscreen).whenComplete((actual, failure) -> {
-            if (failure != null) {
-                SwingUtilities.invokeLater(() -> showError(
-                        fullscreen
-                                ? LauncherMessages.Key.DIALOG_FULLSCREEN_ERROR_TITLE
-                                : LauncherMessages.Key.DIALOG_WINDOWED_ERROR_TITLE,
-                        unwrap(failure)));
-            }
+        SwingUtilities.invokeLater(() -> {
+            String title = LauncherMessages.text(language, LauncherMessages.Key.APPLICATION_TITLE);
+            String message = message(LauncherMessages.Key.ABOUT_MESSAGE);
+            JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
         });
     }
 
@@ -528,6 +555,24 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
             setExtendedState(JFrame.NORMAL);
             toFront();
             requestFocus();
+        });
+    }
+
+    void showAtStartup(boolean minimized) {
+        setVisible(!minimized || tray == null);
+    }
+
+    void startFromAutoStart() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                LauncherSettings settings = configStore.load();
+                if (settings.autoRunService()) {
+                    // Auto-start the service
+                    start();
+                }
+            } catch (Exception exception) {
+                receiveLog("Auto-start failed: " + exception.getMessage());
+            }
         });
     }
 
@@ -595,6 +640,8 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
         baseLabel.setText(message(
                 LauncherMessages.Key.DIRECTORY_LABEL, name == null ? baseDirectory : name));
         startFullscreenCheck.setText(message(LauncherMessages.Key.START_FULLSCREEN));
+        autoStartCheck.setText(message(LauncherMessages.Key.AUTO_START_LABEL));
+        autoRunServiceCheck.setText(message(LauncherMessages.Key.AUTO_START_AND_RUN));
         startButton.setText(message(LauncherMessages.Key.START));
         stopButton.setText(message(LauncherMessages.Key.STOP));
         restartButton.setText(message(LauncherMessages.Key.RESTART));
@@ -645,6 +692,35 @@ final class LauncherFrame extends JFrame implements LauncherTray.Actions {
 
     private void updateConfigAvailability() {
         startFullscreenCheck.setEnabled("gstreamer".equals(playerCombo.getSelectedItem()));
+    }
+
+    private void applyAutoStartRegistry() {
+        boolean enabled = autoStartCheck.isSelected();
+        autoStartCheck.setEnabled(false);
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                Path launcherJar = baseDirectory.resolve("java-airplay-launcher.jar");
+                Path executable = baseDirectory.resolve("AirPlayReceiver.exe");
+                Path targetPath = java.nio.file.Files.isRegularFile(executable) ? executable : launcherJar;
+                if (enabled) {
+                    AutoStartManager.enable(targetPath, true);
+                } else {
+                    AutoStartManager.disable();
+                }
+            } catch (IOException exception) {
+                throw new CompletionException(exception);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new CompletionException(exception);
+            }
+        }).whenComplete((ignored, failure) -> SwingUtilities.invokeLater(() -> {
+            autoStartCheck.setEnabled(true);
+            if (failure != null) {
+                autoStartCheck.setSelected(!enabled);
+                showError(LauncherMessages.Key.DIALOG_SAVE_ERROR_TITLE, unwrap(failure));
+            }
+            scheduleAutoSave();
+        }));
     }
 
     private void receiveLog(ServerProcessManager.LogEntry entry) {

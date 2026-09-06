@@ -1,6 +1,7 @@
 package com.github.serezhka.airplay.launcher;
 
 import java.awt.BasicStroke;
+import java.awt.CheckboxMenuItem;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
@@ -10,6 +11,7 @@ import java.awt.PopupMenu;
 import java.awt.RenderingHints;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
+import java.awt.event.ItemEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -26,43 +28,54 @@ final class LauncherTray implements AutoCloseable {
 
         void stop();
 
-        void restart();
+        void toggleFullscreen(boolean fullscreen);
 
-        void fullscreen(boolean fullscreen);
+        void settings();
+
+        void about();
 
         void quit();
     }
 
     private final TrayIcon trayIcon;
     private final MenuItem showItem = new MenuItem();
-    private final MenuItem startItem = new MenuItem();
-    private final MenuItem stopItem = new MenuItem();
-    private final MenuItem restartItem = new MenuItem();
-    private final MenuItem fullscreenItem = new MenuItem();
-    private final MenuItem windowedItem = new MenuItem();
+    private final MenuItem serviceItem = new MenuItem();
+    private final CheckboxMenuItem fullscreenItem = new CheckboxMenuItem();
+    private final MenuItem settingsItem = new MenuItem();
+    private final MenuItem aboutItem = new MenuItem();
     private final MenuItem quitItem = new MenuItem();
     private UiLanguage language;
     private ServerProcessManager.Snapshot snapshot = ServerProcessManager.Snapshot.stopped();
+    private boolean updatingFullscreenState = false;
 
     private LauncherTray(Actions actions, UiLanguage language) throws Exception {
         PopupMenu menu = new PopupMenu();
         showItem.addActionListener(event -> actions.showWindow());
-        startItem.addActionListener(event -> actions.start());
-        stopItem.addActionListener(event -> actions.stop());
-        restartItem.addActionListener(event -> actions.restart());
-        fullscreenItem.addActionListener(event -> actions.fullscreen(true));
-        windowedItem.addActionListener(event -> actions.fullscreen(false));
+        serviceItem.addActionListener(event -> {
+            if (canStartService()) {
+                actions.start();
+            } else {
+                actions.stop();
+            }
+        });
+        fullscreenItem.addItemListener(event -> {
+            if (!updatingFullscreenState) {
+                boolean fullscreen = event.getStateChange() == ItemEvent.SELECTED;
+                actions.toggleFullscreen(fullscreen);
+            }
+        });
+        settingsItem.addActionListener(event -> actions.settings());
+        aboutItem.addActionListener(event -> actions.about());
         quitItem.addActionListener(event -> actions.quit());
 
         menu.add(showItem);
         menu.addSeparator();
-        menu.add(startItem);
-        menu.add(stopItem);
-        menu.add(restartItem);
+        menu.add(serviceItem);
         menu.addSeparator();
         menu.add(fullscreenItem);
-        menu.add(windowedItem);
+        menu.add(settingsItem);
         menu.addSeparator();
+        menu.add(aboutItem);
         menu.add(quitItem);
         applyMenuFont(menu);
 
@@ -98,17 +111,22 @@ final class LauncherTray implements AutoCloseable {
 
     void update(ServerProcessManager.Snapshot snapshot) {
         this.snapshot = Objects.requireNonNull(snapshot, "snapshot");
-        boolean active = snapshot.state() == ServerProcessManager.State.RUNNING
-                || snapshot.state() == ServerProcessManager.State.STARTING;
         boolean changing = snapshot.state() == ServerProcessManager.State.STARTING
                 || snapshot.state() == ServerProcessManager.State.STOPPING;
-        startItem.setEnabled(!active && !changing);
-        stopItem.setEnabled(active && !changing);
-        restartItem.setEnabled(active && !changing);
-        fullscreenItem.setEnabled(snapshot.controlConnected() && snapshot.fullscreenAvailable()
-                && !snapshot.fullscreen());
-        windowedItem.setEnabled(snapshot.controlConnected() && snapshot.fullscreenAvailable()
-                && snapshot.fullscreen());
+        Labels labels = labels(language, snapshot);
+        serviceItem.setLabel(canStartService() ? labels.start() : labels.stop());
+        serviceItem.setEnabled(!changing);
+
+        // Fullscreen checkbox
+        boolean fullscreenAvailable = snapshot.controlConnected() && snapshot.fullscreenAvailable();
+        fullscreenItem.setEnabled(fullscreenAvailable);
+        updatingFullscreenState = true;
+        try {
+            fullscreenItem.setState(snapshot.fullscreen());
+        } finally {
+            updatingFullscreenState = false;
+        }
+
         trayIcon.setToolTip(labels(language, snapshot).tooltip());
     }
 
@@ -116,11 +134,10 @@ final class LauncherTray implements AutoCloseable {
         this.language = Objects.requireNonNull(language, "language");
         Labels labels = labels(language, snapshot);
         showItem.setLabel(labels.open());
-        startItem.setLabel(labels.start());
-        stopItem.setLabel(labels.stop());
-        restartItem.setLabel(labels.restart());
+        serviceItem.setLabel(canStartService() ? labels.start() : labels.stop());
         fullscreenItem.setLabel(labels.fullscreen());
-        windowedItem.setLabel(labels.windowed());
+        settingsItem.setLabel(labels.settings());
+        aboutItem.setLabel(labels.about());
         quitItem.setLabel(labels.exit());
         trayIcon.setToolTip(labels.tooltip());
     }
@@ -137,11 +154,11 @@ final class LauncherTray implements AutoCloseable {
         };
         return new Labels(
                 LauncherMessages.text(language, LauncherMessages.Key.TRAY_OPEN),
-                LauncherMessages.text(language, LauncherMessages.Key.START),
-                LauncherMessages.text(language, LauncherMessages.Key.STOP),
-                LauncherMessages.text(language, LauncherMessages.Key.RESTART),
+                LauncherMessages.text(language, LauncherMessages.Key.TRAY_START),
+                LauncherMessages.text(language, LauncherMessages.Key.TRAY_STOP),
                 LauncherMessages.text(language, LauncherMessages.Key.FULLSCREEN),
-                LauncherMessages.text(language, LauncherMessages.Key.WINDOWED),
+                LauncherMessages.text(language, LauncherMessages.Key.TRAY_SETTINGS),
+                LauncherMessages.text(language, LauncherMessages.Key.TRAY_ABOUT),
                 LauncherMessages.text(language, LauncherMessages.Key.TRAY_EXIT),
                 LauncherMessages.text(language, LauncherMessages.Key.APPLICATION_TITLE)
                         + " - " + LauncherMessages.text(language, stateKey));
@@ -151,11 +168,16 @@ final class LauncherTray implements AutoCloseable {
             String open,
             String start,
             String stop,
-            String restart,
             String fullscreen,
-            String windowed,
+            String settings,
+            String about,
             String exit,
             String tooltip) {
+    }
+
+    private boolean canStartService() {
+        return snapshot.state() == ServerProcessManager.State.STOPPED
+                || snapshot.state() == ServerProcessManager.State.FAILED;
     }
 
     private void applyMenuFont(PopupMenu menu) {
@@ -163,25 +185,32 @@ final class LauncherTray implements AutoCloseable {
         menu.setFont(font);
         for (MenuItem item : List.of(
                 showItem,
-                startItem,
-                stopItem,
-                restartItem,
-                fullscreenItem,
-                windowedItem,
+                serviceItem,
+                settingsItem,
+                aboutItem,
                 quitItem)) {
             item.setFont(font);
         }
+        fullscreenItem.setFont(font);
     }
 
     private static Font unicodeMenuFont() {
-        String sample = "打开启动停止重启全屏窗口模式退出";
-        for (String family : List.of("Microsoft YaHei UI", "Microsoft YaHei", Font.DIALOG)) {
+        String sample = "显示主窗口启动停止服务全屏设置关于退出";
+        // Try system fonts that support CJK
+        for (String family : List.of(
+                "Microsoft YaHei UI",
+                "Microsoft YaHei",
+                "SimSun",
+                "NSimSun",
+                "SimHei",
+                Font.DIALOG)) {
             Font font = new Font(family, Font.PLAIN, 12);
             if (font.canDisplayUpTo(sample) < 0) {
                 return font;
             }
         }
-        return new Font(Font.DIALOG, Font.PLAIN, 12);
+        // Fallback: use default with explicit encoding support
+        return new Font(Font.SANS_SERIF, Font.PLAIN, 12);
     }
 
     static Image applicationIcon() {

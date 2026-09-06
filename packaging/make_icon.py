@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Generate an AirPlay-style icon (.ico) with pure Python (no PIL).
+"""Generate AirPlay launcher icons (.ico and tray_icon.png) with pure Python.
 
-Design: rounded-square blue gradient tile + white monitor frame +
-white AirPlay triangle at bottom-inside of the screen.
-Writes sizes 256/128/64/48/32/16 as raw 32bpp BGRA entries.
+Design: rounded-square blue gradient tile (material blue 500 -> 900) + white
+monitor frame + white AirPlay triangle at the bottom-inside of the screen.
 """
 import struct
+import zlib
 
 def lerp(a, b, t):
     return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(4))
@@ -13,7 +13,7 @@ def lerp(a, b, t):
 # colors RGBA
 BG_TL = (33, 150, 243, 255)      # material blue 500
 BG_BR = (13, 71, 161, 255)       # material blue 900
-WHITE = (255, 255, 255, 255)
+MARK = (255, 255, 255, 255)      # white frame + triangle
 
 def clamp(v, lo, hi):
     return lo if v < lo else hi if v > hi else v
@@ -99,15 +99,15 @@ def render(size):
             g = lerp(BG_TL, BG_BR, clamp(tx * 0.45 + ty * 0.75, 0, 1))
             r_ = g[0]; g_ = g[1]; b_ = g[2]
             alpha = a_bg
-            # white overlay (frame or triangle) blended over bg
+            # White overlay (frame or triangle) blended over the blue tile.
             aw = min(1.0, a_f + a_t)
             if aw > 0:
                 src_a = aw
                 out_a = src_a + alpha * (1 - src_a)
                 if out_a > 0:
-                    r_ = (WHITE[0] * src_a + r_ * alpha * (1 - src_a)) / out_a
-                    g_ = (WHITE[1] * src_a + g_ * alpha * (1 - src_a)) / out_a
-                    b_ = (WHITE[2] * src_a + b_ * alpha * (1 - src_a)) / out_a
+                    r_ = (MARK[0] * src_a + r_ * alpha * (1 - src_a)) / out_a
+                    g_ = (MARK[1] * src_a + g_ * alpha * (1 - src_a)) / out_a
+                    b_ = (MARK[2] * src_a + b_ * alpha * (1 - src_a)) / out_a
                 alpha = out_a
             img[idx + 0] = int(clamp(b_, 0, 255))  # B
             img[idx + 1] = int(clamp(g_, 0, 255))  # G
@@ -127,6 +127,26 @@ def render(size):
             k = (py * n + px) * 4
             out[k], out[k+1], out[k+2], out[k+3] = sb//inv, sg//inv, sr//inv, sa//inv
     return bytes(out)
+
+def png_chunk(kind, payload):
+    return (struct.pack('>I', len(payload)) + kind + payload
+            + struct.pack('>I', zlib.crc32(kind + payload) & 0xffffffff))
+
+def write_png(path, bgra, size):
+    rows = bytearray()
+    stride = size * 4
+    for y in range(size):
+        rows.append(0)
+        for x in range(size):
+            offset = y * stride + x * 4
+            blue, green, red, alpha = bgra[offset:offset + 4]
+            rows.extend((red, green, blue, alpha))
+    header = struct.pack('>IIBBBBB', size, size, 8, 6, 0, 0, 0)
+    with open(path, 'wb') as f:
+        f.write(b'\x89PNG\r\n\x1a\n')
+        f.write(png_chunk(b'IHDR', header))
+        f.write(png_chunk(b'IDAT', zlib.compress(bytes(rows), 9)))
+        f.write(png_chunk(b'IEND', b''))
 
 def bmp_entry(rgba, n):
     """BITMAPINFOHEADER + XOR(BGRA, bottom-up, +AND mask) payload."""
@@ -162,6 +182,8 @@ def main():
         for blob in blobs:
             f.write(blob)
     print('written airplay.ico')
+    write_png('tray_icon.png', render(32), 32)
+    print('written tray_icon.png')
 
 if __name__ == '__main__':
     import sys
