@@ -37,7 +37,7 @@ This repository provides two ready-to-run Windows distributions. Direct links:
    Switch between `中文` and `English` from the top of the window at any time. Set the server name, resolution, frame rate, player, and startup display mode; changes are saved automatically. Then click `Start`. Each width and height choice is labeled with its resolution tier (`HD / FHD / 2K / 4K` — 720P, 1080P, 1440P and 2160P respectively; for example `3840 (4K)` and `2160 (4K)`) and remains editable for custom keyboard input. The status changes to `Running` when AirPlay is ready. While running, the service can also be started or stopped directly from the launcher tray menu without opening the main window.
 
 3. **Connect from Apple Devices**
-   Ensure your mobile device/Mac and PC are connected to the same Wi-Fi network → Open "Control Center" → Tap "Screen Mirroring" → Select your AirPlay server name.
+   Ensure your mobile device/Mac and PC are on the same local network (Wi-Fi or wired Ethernet both work) → Open "Control Center" → Tap "Screen Mirroring" → Select your AirPlay server name.
 
 > **Note:** On the first run, Windows Firewall will display a security prompt. **Please click "Allow access."** If denied, AirPlay will not be able to discover this PC.
 
@@ -48,7 +48,7 @@ The original `run_airplay_server.bat` command-line launcher remains available. I
 ## 2. Frequently Asked Questions (FAQ)
 
 **Cannot find the PC on my Apple device?**
-- Are the device and PC on the exact same Wi-Fi network? (2.4 GHz and 5 GHz networks are sometimes isolated under different SSIDs).
+- Are the device and PC on the same local network? (2.4 GHz and 5 GHz networks are sometimes isolated under different SSIDs).
 - Does the GUI launcher show the service as running, or is the command-line server window still open?
 - Did you click "Allow" on the Windows Firewall prompt during the first launch? If you accidentally clicked "Cancel," you need to manually allow it in Windows Firewall settings or reinstall the app.
 - "AP Isolation" on corporate or hotel Wi-Fi networks blocks device-to-device discovery. In such cases, try using a mobile hotspot or PC hotspot instead.
