@@ -12,7 +12,7 @@ This software allows you to mirror iPhone, iPad, and Mac screens to a Windows PC
 
 This project is modified based on [serezhka/java-airplay](https://github.com/serezhka/java-airplay) by [serezhka](https://github.com/serezhka). Download and run it directly; all required runtime components (Java Runtime Environment and GStreamer playback components) are included.
 
-<img width="2659" height="1349" alt="PixPin_2026-09-07_18-07-55" src="https://github.com/user-attachments/assets/924b4f18-005e-4978-b95c-3748f13c66fc" />
+<img width="2658" height="1349" alt="PixPin_2026-09-07_18-09-04" src="https://github.com/user-attachments/assets/4c9228cb-c910-4ec4-88a5-1a7e77c0dc76" />
 
 ---
 
