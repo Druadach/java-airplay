@@ -12,6 +12,8 @@
 
 本项目基于原作者 [serezhka](https://github.com/serezhka) 的 [serezhka/java-airplay](https://github.com/serezhka/java-airplay) 修改，下载即可使用，已包含全部运行所需组件（Java 运行环境、GStreamer 播放组件）。
 
+<img width="2659" height="1349" alt="PixPin_2026-09-07_18-07-55" src="https://github.com/user-attachments/assets/924b4f18-005e-4978-b95c-3748f13c66fc" />
+
 ---
 
 ## 下载（EXE 安装包）
