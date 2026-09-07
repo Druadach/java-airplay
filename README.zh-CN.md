@@ -6,6 +6,7 @@
 [![build](https://github.com/Druadach/java-airplay/actions/workflows/build.yaml/badge.svg)](https://github.com/Druadach/java-airplay/actions/workflows/build.yaml)
 ![ViewCount](https://views.whatilearened.today/views/github/Druadach/java-airplay.svg)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](http://opensource.org/licenses/MIT)
+[![LINUX DO](https://img.shields.io/badge/LINUX-DO-FFB003.svg)](https://linux.do)
 
 本软件用于将 iPhone、iPad、Mac 投屏到 Windows 电脑上，最高支持 4K 60 帧。
 
@@ -15,7 +16,7 @@
 
 ## 下载（EXE 安装包）
 
-本仓库提供两种免配置的 Windows 分发形式，下载直链：
+本仓库提供两种免配置的 Windows 分发形式，下载直链如下：
 
 | 文件 | 类型 | 说明 |
 | --- | --- | --- |
@@ -29,7 +30,7 @@
 1. **启动程序**
    安装版：双击桌面或开始菜单的“AirPlay 接收器”快捷方式（或安装目录中的 `AirPlayReceiver.exe`）；
    便携版：解压后双击其中的 `AirPlayReceiver.exe`。
-   也可使用 `run_airplay_gui.bat`，效果相同。启动器使用项目内置 Java，不会弹出命令行窗口。
+   也可使用 `run_airplay_gui.bat`，效果相同。
 
 2. **配置并启动**
    可在窗口顶部随时切换“中文 / English”。设置服务名称、分辨率、帧率、播放器和启动显示模式；修改会自动保存，然后点击“启动”。每个宽度和高度候选都会标注对应的分辨率档位 `HD / FHD / 2K / 4K`（分别对应 720P、1080P、1440P 和 2160P，例如 `3840 (4K)`、`2160 (4K)`），也可直接键盘输入自定义数值。状态变为“运行中”后即可投屏。服务运行后，也可通过启动器托盘菜单直接“启动服务 / 停止服务”，无需打开主窗口。
@@ -48,7 +49,7 @@
 ## 二、常见问题
 
 **设备上搜不到电脑？**
-- 设备和电脑是否连的是同一个 WiFi（注意 2.4G 和 5G 有时是两个不同的网络名）？
+- 设备和电脑是否连的是同一个 WiFi（2.4G 和 5G 有时是两个不同的网络名）？
 - GUI 启动器是否显示服务”运行中”，或命令行服务窗口是否仍然打开？
 - 首次启动的防火墙提示是否点了”允许”？如果误点了”取消”，需要到
   Windows 防火墙设置里手动放行，或者卸载重装。
@@ -70,7 +71,7 @@ airplay.fps=30
 
 ## 三、设置项说明
 
-用记事本打开 `application.properties` 修改，**改完必须重启软件才生效**。
+可直接在软件面板内修改，也可用记事本打开 `application.properties` 修改，**改完必须重启软件才生效**。
 
 ```properties
 airplay.serverName=Mukar          # AirPlay 服务器名
