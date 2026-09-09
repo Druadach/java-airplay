@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 public final class AirPlayLauncher {
     private static volatile UiLanguage currentLanguage = UiLanguage.systemDefault();
@@ -25,7 +27,10 @@ public final class AirPlayLauncher {
         }
 
         boolean minimized = hasArgument(arguments, "--minimized");
-        boolean autoStart = hasArgument(arguments, "--auto-start");
+        boolean automaticLaunch = hasArgument(arguments, "--auto-start");
+        boolean updateRelaunch = hasArgument(arguments, "--updated-relaunch");
+        boolean resumeService = hasArgument(arguments, "--resume-service");
+        boolean updateHandshake = hasArgument(arguments, "--update-job");
 
         Thread.setDefaultUncaughtExceptionHandler((thread, failure) ->
                 SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(
@@ -40,15 +45,38 @@ public final class AirPlayLauncher {
                 Path baseDirectory = resolveBaseDirectory(arguments);
                 currentLanguage = new ConfigStore(
                         baseDirectory.resolve("application.properties")).loadLanguage();
-                LauncherFrame frame = new LauncherFrame(baseDirectory);
+                UpdateInstaller.Startup startup = UpdateInstaller.startup(baseDirectory, arguments);
+                LauncherFrame frame = new LauncherFrame(baseDirectory, startup != null);
                 Runtime.getRuntime().addShutdownHook(
                         new Thread(frame::shutdownFromHook, "airplay-launcher-shutdown"));
 
-                frame.showAtStartup(minimized);
-                if (autoStart) {
-                    frame.startFromAutoStart();
+                if (startup == null) {
+                    frame.showAtStartup(minimized, automaticLaunch);
+                    frame.startServiceAtStartup(updateRelaunch, resumeService);
+                } else {
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            UpdateInstaller.acknowledgeStartup(startup);
+                        } catch (IOException exception) {
+                            throw new CompletionException(exception);
+                        }
+                    }).whenComplete((ignored, failure) -> SwingUtilities.invokeLater(() -> {
+                        if (failure != null) {
+                            System.err.println(failure.getMessage());
+                            System.exit(1);
+                            return;
+                        }
+                        frame.completeUpdateStartup();
+                        frame.showAtStartup(minimized, automaticLaunch);
+                        frame.startServiceAtStartup(updateRelaunch, resumeService);
+                    }));
                 }
             } catch (Exception exception) {
+                if (updateHandshake) {
+                    System.err.println(exception.getMessage());
+                    System.exit(1);
+                    return;
+                }
                 JOptionPane.showMessageDialog(
                         null,
                         LauncherMessages.failureText(currentLanguage, exception),
@@ -64,6 +92,8 @@ public final class AirPlayLauncher {
         try {
             Path baseDirectory = resolveBaseDirectory(arguments);
             new ConfigStore(baseDirectory.resolve("application.properties")).load();
+            AppVersion.current();
+            UpdateInstaller.validateResources();
             if (AirPlayLauncher.class.getResource("/menu/tray_icon.png") == null) {
                 throw new LauncherIOException(LauncherMessages.Key.VALIDATION_ICON_MISSING);
             }

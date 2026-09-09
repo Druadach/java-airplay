@@ -34,6 +34,8 @@ final class LauncherTray implements AutoCloseable {
 
         void about();
 
+        void checkUpdates();
+
         void quit();
     }
 
@@ -42,11 +44,14 @@ final class LauncherTray implements AutoCloseable {
     private final MenuItem serviceItem = new MenuItem();
     private final CheckboxMenuItem fullscreenItem = new CheckboxMenuItem();
     private final MenuItem settingsItem = new MenuItem();
+    private final MenuItem checkUpdatesItem = new MenuItem();
     private final MenuItem aboutItem = new MenuItem();
     private final MenuItem quitItem = new MenuItem();
     private UiLanguage language;
     private ServerProcessManager.Snapshot snapshot = ServerProcessManager.Snapshot.stopped();
     private boolean updatingFullscreenState = false;
+    private boolean checkingUpdates;
+    private boolean updating;
 
     private LauncherTray(Actions actions, UiLanguage language) throws Exception {
         PopupMenu menu = new PopupMenu();
@@ -65,6 +70,7 @@ final class LauncherTray implements AutoCloseable {
             }
         });
         settingsItem.addActionListener(event -> actions.settings());
+        checkUpdatesItem.addActionListener(event -> actions.checkUpdates());
         aboutItem.addActionListener(event -> actions.about());
         quitItem.addActionListener(event -> actions.quit());
 
@@ -75,6 +81,7 @@ final class LauncherTray implements AutoCloseable {
         menu.add(fullscreenItem);
         menu.add(settingsItem);
         menu.addSeparator();
+        menu.add(checkUpdatesItem);
         menu.add(aboutItem);
         menu.add(quitItem);
         applyMenuFont(menu);
@@ -137,9 +144,18 @@ final class LauncherTray implements AutoCloseable {
         serviceItem.setLabel(canStartService() ? labels.start() : labels.stop());
         fullscreenItem.setLabel(labels.fullscreen());
         settingsItem.setLabel(labels.settings());
+        setUpdateActivity(checkingUpdates, updating);
         aboutItem.setLabel(labels.about());
         quitItem.setLabel(labels.exit());
         trayIcon.setToolTip(labels.tooltip());
+    }
+
+    void setUpdateActivity(boolean checkingUpdates, boolean updating) {
+        this.checkingUpdates = checkingUpdates;
+        this.updating = updating;
+        checkUpdatesItem.setEnabled(!checkingUpdates && !updating);
+        checkUpdatesItem.setLabel(LauncherMessages.text(language, updating ? LauncherMessages.Key.UPDATE_WORKING
+                : checkingUpdates ? LauncherMessages.Key.CHECKING_UPDATES : LauncherMessages.Key.CHECK_UPDATES));
     }
 
     static Labels labels(UiLanguage language, ServerProcessManager.Snapshot snapshot) {
@@ -158,6 +174,7 @@ final class LauncherTray implements AutoCloseable {
                 LauncherMessages.text(language, LauncherMessages.Key.TRAY_STOP),
                 LauncherMessages.text(language, LauncherMessages.Key.FULLSCREEN),
                 LauncherMessages.text(language, LauncherMessages.Key.TRAY_SETTINGS),
+                LauncherMessages.text(language, LauncherMessages.Key.CHECK_UPDATES),
                 LauncherMessages.text(language, LauncherMessages.Key.TRAY_ABOUT),
                 LauncherMessages.text(language, LauncherMessages.Key.TRAY_EXIT),
                 LauncherMessages.text(language, LauncherMessages.Key.APPLICATION_TITLE)
@@ -170,6 +187,7 @@ final class LauncherTray implements AutoCloseable {
             String stop,
             String fullscreen,
             String settings,
+            String checkUpdates,
             String about,
             String exit,
             String tooltip) {
@@ -187,6 +205,7 @@ final class LauncherTray implements AutoCloseable {
                 showItem,
                 serviceItem,
                 settingsItem,
+                checkUpdatesItem,
                 aboutItem,
                 quitItem)) {
             item.setFont(font);
@@ -195,7 +214,7 @@ final class LauncherTray implements AutoCloseable {
     }
 
     private static Font unicodeMenuFont() {
-        String sample = "显示主窗口启动停止服务全屏设置关于退出";
+        String sample = "显示主窗口启动停止服务全屏设置检查更新关于退出";
         // Try system fonts that support CJK
         for (String family : List.of(
                 "Microsoft YaHei UI",

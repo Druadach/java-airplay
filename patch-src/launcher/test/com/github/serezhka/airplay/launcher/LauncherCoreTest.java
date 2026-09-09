@@ -1,5 +1,19 @@
 package com.github.serezhka.airplay.launcher;
 
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -14,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -23,6 +38,9 @@ public final class LauncherCoreTest {
 
     public static void main(String[] arguments) throws Exception {
         languagesAndMessagesAreComplete();
+        GitHubUpdateCheckerTest.runAll();
+        AutomaticUpdateTest.runAll();
+        settingLabelsExplainReceiverChoices();
         statusTextSwitchesLanguageImmediately();
         trayLabelsSwitchLanguageImmediately();
         editableNumericFieldsAcceptCustomValues();
@@ -31,6 +49,15 @@ public final class LauncherCoreTest {
         guiSavePreservesHiddenPort();
         languageLoadsBeforeInvalidSettings();
         startupUsesBundledRuntimeAndExplicitDirectory();
+        defaultsAndSystemLanguageRoundTrip();
+        resolutionPresetsKeepDimensionsTogether();
+        onlyServiceChangesRequireRestart();
+        resettingGuiSettingsPreservesAdvancedConfiguration();
+        externalPlayersAreCheckedBeforeStartup();
+        trayPreferencesPersistAndControlWindowBehavior();
+        resolutionAndFrameRateLabelsFit();
+        advancedPlayerRowsDoNotOverlap();
+        runtimeLogsAreCollapsedUntilExpanded();
         controlClientUsesAuthenticatedLoopbackProtocol();
         System.out.println("Launcher core tests passed");
     }
@@ -54,18 +81,20 @@ public final class LauncherCoreTest {
             } catch (IOException expected) {
                 // Missing arguments must not silently use another installation.
             }
-            String jarCommand = AutoStartManager.startupCommand(jar, true);
+            String jarCommand = AutoStartManager.startupCommand(jar);
             assertContains(jarCommand, "\"" + java + "\" -Dfile.encoding=UTF-8 -jar \"" + jar + "\"",
                     "startup uses bundled Java for jar");
             assertContains(jarCommand, "\"--base-dir=" + directory + "\"", "startup directory");
-            assertContains(jarCommand, "--minimized --auto-start", "jar startup flags");
-            assertEquals("\"" + exe + "\" --minimized --auto-start",
-                    AutoStartManager.startupCommand(exe, true), "exe startup flags");
+            assertContains(jarCommand, "--auto-start", "jar startup marker");
+            assertNotContains(jarCommand, "--minimized", "startup visibility comes from preferences");
+            assertEquals("\"" + exe + "\" --auto-start",
+                    AutoStartManager.startupCommand(exe), "exe startup flags");
             LauncherSettings defaults = LauncherSettings.defaults();
             ConfigStore store = new ConfigStore(directory.resolve("application.properties"));
             store.save(new LauncherSettings(defaults.serverName(), defaults.airtunesPort(),
                     defaults.width(), defaults.height(), defaults.fps(), defaults.playerImplementation(),
-                    defaults.startFullscreen(), true, true, defaults.language()));
+                    defaults.startFullscreen(), true, true,
+                    defaults.startMinimized(), defaults.closeToTray(), defaults.language()));
             assertEquals(true, store.load().autoStartEnabled(), "startup preference persisted");
             assertEquals(true, store.load().autoRunService(), "auto-run preference persisted");
         } finally {
@@ -75,22 +104,22 @@ public final class LauncherCoreTest {
 
     private static void settingsValidationRejectsInvalidValues() {
         expectFailure(() -> new LauncherSettings(
-                "", 5001, 1920, 1080, 60, "gstreamer", false, false, false, UiLanguage.ZH_CN));
+                "", 5001, 1920, 1080, 60, "gstreamer", false, false, false, false, true, UiLanguage.ZH_CN));
         expectFailure(() -> new LauncherSettings(
-                "AirPlay", 0, 1920, 1080, 60, "gstreamer", false, false, false, UiLanguage.ZH_CN));
+                "AirPlay", 0, 1920, 1080, 60, "gstreamer", false, false, false, false, true, UiLanguage.ZH_CN));
         expectFailure(() -> new LauncherSettings(
-                "AirPlay", 5001, 10, 1080, 60, "gstreamer", false, false, false, UiLanguage.ZH_CN));
+                "AirPlay", 5001, 10, 1080, 60, "gstreamer", false, false, false, false, true, UiLanguage.ZH_CN));
         expectFailure(() -> new LauncherSettings(
-                "AirPlay", 5001, 1920, 1080, 0, "gstreamer", false, false, false, UiLanguage.ZH_CN));
+                "AirPlay", 5001, 1920, 1080, 0, "gstreamer", false, false, false, false, true, UiLanguage.ZH_CN));
         expectFailure(() -> new LauncherSettings(
-                "AirPlay", 5001, 1920, 1080, 60, "unknown", false, false, false, UiLanguage.ZH_CN));
+                "AirPlay", 5001, 1920, 1080, 60, "unknown", false, false, false, false, true, UiLanguage.ZH_CN));
     }
 
     private static void editableNumericFieldsAcceptCustomValues() {
-        assertEquals(List.of("1280 (HD)", "1920 (FHD)", "2560 (2K)", "3840 (4K)"),
+        assertEquals(List.of(1280, 1920, 2560, 3840),
                 LauncherFrame.WIDTH_CANDIDATES,
                 "width candidates");
-        assertEquals(List.of("720 (HD)", "1080 (FHD)", "1440 (2K)", "2160 (4K)"),
+        assertEquals(List.of(720, 1080, 1440, 2160),
                 LauncherFrame.HEIGHT_CANDIDATES,
                 "height candidates");
         assertEquals(List.of(24, 30, 60), LauncherFrame.FPS_CANDIDATES,
@@ -137,7 +166,7 @@ public final class LauncherCoreTest {
             assertEquals(UiLanguage.ZH_CN, loaded.language(), "loaded language");
 
             LauncherSettings replacement = new LauncherSettings(
-                    "Living Room", 7000, 3840, 2160, 60, "gstreamer", true, false, false, UiLanguage.EN_US);
+                    "Living Room", 7000, 3840, 2160, 60, "gstreamer", true, false, false, false, true, UiLanguage.EN_US);
             store.save(replacement);
             String saved = Files.readString(path, StandardCharsets.UTF_8);
             assertContains(saved, "# retained comment", "comment");
@@ -166,7 +195,7 @@ public final class LauncherCoreTest {
     private static void languagesAndMessagesAreComplete() {
         assertEquals(UiLanguage.ZH_CN, UiLanguage.fromCode("zh-CN"), "Chinese language code");
         assertEquals(UiLanguage.EN_US, UiLanguage.fromCode("en-US"), "English language code");
-        assertEquals(UiLanguage.systemDefault(), UiLanguage.fromCode("not-a-language"),
+        assertEquals(UiLanguage.SYSTEM, UiLanguage.fromCode("not-a-language"),
                 "unknown language fallback");
         for (LauncherMessages.Key key : LauncherMessages.Key.values()) {
             for (UiLanguage language : UiLanguage.values()) {
@@ -174,6 +203,139 @@ public final class LauncherCoreTest {
                 if (message == null || message.isBlank()) {
                     throw new AssertionError("Missing " + language + " message for " + key);
                 }
+            }
+        }
+    }
+
+    private static void settingLabelsExplainReceiverChoices() {
+        assertEquals("投屏设置", LauncherMessages.text(UiLanguage.ZH_CN,
+                LauncherMessages.Key.CONFIGURATION_SECTION), "settings describe their purpose");
+        assertEquals("投屏名称", LauncherMessages.text(UiLanguage.ZH_CN,
+                LauncherMessages.Key.SERVER_NAME_LABEL), "receiver name label");
+        assertEquals("AirPlay Name", LauncherMessages.text(UiLanguage.EN_US,
+                LauncherMessages.Key.SERVER_NAME_LABEL), "English receiver name label");
+        assertEquals("最高帧率", LauncherMessages.text(UiLanguage.ZH_CN, LauncherMessages.Key.FPS_LABEL),
+                "concise Chinese frame rate label");
+        assertContains(LauncherMessages.text(UiLanguage.EN_US, LauncherMessages.Key.FPS_LABEL),
+                "fps", "English frame rate unit");
+        assertContains(UiLanguage.SYSTEM.label(), "跟随系统", "Chinese system language choice");
+        assertContains(UiLanguage.SYSTEM.label(), "System default", "English system language choice");
+        assertEquals("开机自动启动", LauncherMessages.text(UiLanguage.ZH_CN,
+                LauncherMessages.Key.AUTO_START_LABEL), "requested Windows startup wording");
+        assertEquals("软件启动时最小化到托盘", LauncherMessages.text(UiLanguage.ZH_CN,
+                LauncherMessages.Key.START_MINIMIZED), "requested minimized startup wording");
+        assertEquals("软件关闭时最小化到托盘", LauncherMessages.text(UiLanguage.ZH_CN,
+                LauncherMessages.Key.CLOSE_TO_TRAY), "requested close to tray wording");
+        assertEquals("启动AirPlay接收", LauncherMessages.text(UiLanguage.ZH_CN,
+                LauncherMessages.Key.START), "explicit reception start wording");
+        assertEquals("停止AirPlay接收", LauncherMessages.text(UiLanguage.ZH_CN,
+                LauncherMessages.Key.STOP), "explicit reception stop wording");
+        for (LauncherMessages.Key key : List.of(LauncherMessages.Key.RESTART, LauncherMessages.Key.RESTART_AND_APPLY)) {
+            assertEquals("重启AirPlay接收", LauncherMessages.text(UiLanguage.ZH_CN, key),
+                    "consistent reception restart wording");
+        }
+        assertContains(LauncherMessages.text(UiLanguage.ZH_CN, LauncherMessages.Key.UPDATE_CURRENT_MESSAGE,
+                "1.2.2", "v1.2.2"), "当前已是最新版本。", "concise current-version result");
+        assertEquals("展开运行日志", LauncherMessages.text(UiLanguage.ZH_CN,
+                LauncherMessages.Key.EXPAND_RUNTIME_LOG), "expand logs wording");
+        assertEquals("收起运行日志", LauncherMessages.text(UiLanguage.ZH_CN,
+                LauncherMessages.Key.COLLAPSE_RUNTIME_LOG), "collapse logs wording");
+        assertEquals("Start AirPlay in fullscreen", LauncherMessages.text(UiLanguage.EN_US,
+                LauncherMessages.Key.START_FULLSCREEN), "requested AirPlay fullscreen wording");
+        assertContains(LauncherMessages.text(UiLanguage.ZH_CN, LauncherMessages.Key.AUTO_START_HINT),
+                "登录 Windows", "Windows startup is distinct from reception");
+        assertContains(LauncherMessages.text(UiLanguage.ZH_CN, LauncherMessages.Key.AUTO_START_AND_RUN_HINT),
+                "仍需", "automatic reception still requires a sender connection");
+        assertContains(LauncherMessages.text(UiLanguage.EN_US, LauncherMessages.Key.AUTO_START_AND_RUN_HINT),
+                "still need to select this PC", "English automatic reception explanation");
+        for (UiLanguage language : List.of(UiLanguage.ZH_CN, UiLanguage.EN_US)) {
+            assertContains(LauncherMessages.text(language, LauncherMessages.Key.SERVER_NAME_HINT),
+                    "AirPlay", "name discovery hint: " + language);
+            assertContains(PlayerOption.GSTREAMER.hint(language), "GStreamer",
+                    "built-in player remains identifiable: " + language);
+            assertContains(PlayerOption.FFMPEG.label(language), "FFplay",
+                    "external player names the actual application: " + language);
+            assertContains(PlayerOption.FFMPEG.hint(language), "FFmpeg",
+                    "FFplay hint identifies the package: " + language);
+            assertContains(PlayerOption.H264_DUMP.hint(language), "dump.h264",
+                    "debug mode explains its output: " + language);
+        }
+        assertEquals("gstreamer", PlayerOption.GSTREAMER.implementation(), "built-in player value unchanged");
+        assertEquals("ffmpeg", PlayerOption.FFMPEG.implementation(), "FFplay setting value unchanged");
+    }
+
+    private static void runtimeLogsAreCollapsedUntilExpanded() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            for (UiLanguage language : List.of(UiLanguage.ZH_CN, UiLanguage.EN_US)) {
+                JButton start = new JButton(LauncherMessages.text(language, LauncherMessages.Key.START));
+                JButton stop = new JButton(LauncherMessages.text(language, LauncherMessages.Key.STOP));
+                JButton restart = new JButton(LauncherMessages.text(language, LauncherMessages.Key.RESTART));
+                JPanel buttons = LauncherFrame.createServiceButtons(start, stop, restart);
+                JPanel configuration = new JPanel(new BorderLayout());
+                configuration.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
+                configuration.add(buttons, BorderLayout.SOUTH);
+                JTextArea logArea = new JTextArea("earlier log\n");
+                JPanel logs = new JPanel(new BorderLayout());
+                logs.setMinimumSize(new Dimension(180, 0));
+                logs.add(new JScrollPane(logArea), BorderLayout.CENTER);
+                CollapsibleLogPane pane = new CollapsibleLogPane(configuration, logs);
+                assertEquals(false, pane.isExpanded(), "logs start collapsed");
+                assertEquals(false, logs.isVisible(), "log panel starts hidden");
+                assertEquals(false, SwingUtilities.isDescendingFrom(logs, pane), "hidden logs occupy no layout space");
+                assertEquals(configuration, pane.getComponent(0), "settings are the only collapsed content");
+                pane.setSize(1040, 600);
+                pane.doLayout();
+                assertEquals(1040, configuration.getWidth(), "collapsed settings use the available width");
+                logArea.append("received while hidden\n");
+
+                pane.setExpanded(true);
+                pane.doLayout();
+                JSplitPane splitPane = (JSplitPane) pane.getComponent(0);
+                splitPane.doLayout();
+                configuration.doLayout();
+                buttons.doLayout();
+                assertEquals(true, logs.isVisible(), "expanded logs visible");
+                assertEquals(true, SwingUtilities.isDescendingFrom(logs, pane), "expanded logs attached");
+                assertServiceButtonsFit(buttons);
+
+                restart.setText(LauncherMessages.text(language, LauncherMessages.Key.RESTART_AND_APPLY));
+                pane.doLayout();
+                splitPane.doLayout();
+                configuration.doLayout();
+                buttons.doLayout();
+                assertServiceButtonsFit(buttons);
+
+                splitPane.setDividerLocation(650);
+                pane.setExpanded(false);
+                pane.setExpanded(true);
+                assertEquals(650, splitPane.getDividerLocation(), "expansion preserves divider position");
+                pane.setSize(1440, 600);
+                pane.doLayout();
+                splitPane.setDividerLocation(1000);
+                pane.setExpanded(false);
+                pane.setSize(900, 600);
+                pane.doLayout();
+                pane.setExpanded(true);
+                pane.doLayout();
+                splitPane.doLayout();
+                configuration.doLayout();
+                buttons.doLayout();
+                assertServiceButtonsFit(buttons);
+                assertEquals(true, logs.getWidth() >= logs.getMinimumSize().width,
+                        "logs remain visible after resizing while collapsed");
+                pane.setExpanded(false);
+                pane.setExpanded(false);
+                assertEquals(1, pane.getComponentCount(), "repeated collapse does not duplicate content");
+                assertEquals("earlier log\nreceived while hidden\n", logArea.getText(), "toggling preserves log history");
+            }
+        });
+    }
+
+    private static void assertServiceButtonsFit(JPanel buttons) {
+        for (var component : buttons.getComponents()) {
+            JButton button = (JButton) component;
+            if (button.getWidth() < button.getPreferredSize().width) {
+                throw new AssertionError("Service button text clipped: " + button.getText());
             }
         }
     }
@@ -194,7 +356,7 @@ public final class LauncherCoreTest {
             ConfigStore store = new ConfigStore(path);
             store.saveGuiSettings(new LauncherSettings(
                     "Updated", 5001, 3440, 1440, 75,
-                    "gstreamer", false, false, false, UiLanguage.EN_US));
+                    "gstreamer", false, false, false, false, true, UiLanguage.EN_US));
 
             String saved = Files.readString(path, StandardCharsets.UTF_8);
             assertContains(saved, "airplay.airtunesPort = 7001", "hidden port source line");
@@ -209,7 +371,7 @@ public final class LauncherCoreTest {
             ConfigStore noPortStore = new ConfigStore(noPortPath);
             noPortStore.saveGuiSettings(new LauncherSettings(
                     "No Port", 5001, 1920, 1080, 60,
-                    "gstreamer", false, false, false, UiLanguage.ZH_CN));
+                    "gstreamer", false, false, false, false, true, UiLanguage.ZH_CN));
             String noPortSaved = Files.readString(noPortPath, StandardCharsets.UTF_8);
             assertNotContains(noPortSaved, "airplay.airtunesPort", "absent hidden port");
             assertEquals(5001, noPortStore.load().airtunesPort(), "default hidden port");
@@ -265,10 +427,11 @@ public final class LauncherCoreTest {
         LauncherTray.Labels english = LauncherTray.labels(UiLanguage.EN_US, running);
 
         assertEquals("显示主窗口", chinese.open(), "Chinese tray open");
-        assertEquals("启动服务", chinese.start(), "Chinese tray start");
-        assertEquals("停止服务", chinese.stop(), "Chinese tray stop");
+        assertEquals("启动AirPlay接收", chinese.start(), "Chinese tray start");
+        assertEquals("停止AirPlay接收", chinese.stop(), "Chinese tray stop");
         assertEquals("全屏", chinese.fullscreen(), "Chinese tray fullscreen");
         assertEquals("设置...", chinese.settings(), "Chinese tray settings");
+        assertEquals("检查更新", chinese.checkUpdates(), "Chinese tray update check");
         assertEquals("关于", chinese.about(), "Chinese tray about");
         assertEquals("退出", chinese.exit(), "Chinese tray exit");
         assertContains(chinese.tooltip(), "AirPlay 接收器", "Chinese tray title");
@@ -279,6 +442,7 @@ public final class LauncherCoreTest {
         assertEquals("Stop Service", english.stop(), "English tray stop");
         assertEquals("Fullscreen", english.fullscreen(), "English tray fullscreen");
         assertEquals("Settings...", english.settings(), "English tray settings");
+        assertEquals("Check for Updates", english.checkUpdates(), "English tray update check");
         assertEquals("About", english.about(), "English tray about");
         assertEquals("Exit", english.exit(), "English tray exit");
         assertContains(english.tooltip(), "AirPlay Receiver", "English tray title");
@@ -343,6 +507,257 @@ public final class LauncherCoreTest {
             writer.newLine();
             writer.flush();
         }
+    }
+
+    private static void defaultsAndSystemLanguageRoundTrip() throws Exception {
+        LauncherSettings defaults = LauncherSettings.defaults();
+        assertEquals("AirPlay - PC", defaults.serverName(), "default receiver name");
+        assertEquals(1920, defaults.width(), "default width");
+        assertEquals(1080, defaults.height(), "default height");
+        assertEquals(60, defaults.fps(), "default maximum FPS");
+        assertEquals("gstreamer", defaults.playerImplementation(), "default player");
+        assertEquals(false, defaults.startFullscreen(), "default windowed mode");
+        assertEquals(false, defaults.autoStartEnabled(), "default sign-in startup");
+        assertEquals(false, defaults.autoRunService(), "default service startup");
+        assertEquals(false, defaults.startMinimized(), "show window on startup by default");
+        assertEquals(true, defaults.closeToTray(), "close to tray by default");
+        assertEquals(UiLanguage.SYSTEM, defaults.language(), "default language preference");
+        assertEquals(UiLanguage.SYSTEM, UiLanguage.fromCode(null), "missing language preference");
+        assertEquals(UiLanguage.SYSTEM, UiLanguage.fromCode("system"), "system language code");
+
+        Locale original = Locale.getDefault();
+        Path directory = Files.createTempDirectory("airplay-system-language-test-");
+        try {
+            ConfigStore store = new ConfigStore(directory.resolve("application.properties"));
+            assertEquals(defaults, store.load(), "missing configuration defaults");
+            store.saveGuiSettings(defaults);
+            assertContains(Files.readString(store.path()), "launcher.language=system", "system preference saved");
+            Locale.setDefault(Locale.SIMPLIFIED_CHINESE);
+            assertEquals(UiLanguage.ZH_CN, store.load().language().resolved(), "Chinese system language");
+            assertEquals("启动AirPlay接收", LauncherMessages.text(store.load().language(), LauncherMessages.Key.START),
+                    "Chinese system message");
+            Locale.setDefault(Locale.US);
+            assertEquals(UiLanguage.SYSTEM, store.load().language(), "system preference remains automatic");
+            assertEquals("Start", LauncherMessages.text(store.load().language(), LauncherMessages.Key.START),
+                    "English system message");
+            store.saveLanguage(UiLanguage.ZH_CN);
+            assertEquals(UiLanguage.ZH_CN, store.load().language().resolved(), "explicit language overrides system");
+        } finally {
+            Locale.setDefault(original);
+            deleteTree(directory);
+        }
+    }
+
+    private static void resolutionPresetsKeepDimensionsTogether() {
+        for (ResolutionPreset preset : ResolutionPreset.values()) {
+            if (preset != ResolutionPreset.CUSTOM) {
+                assertEquals(preset, ResolutionPreset.forSize(preset.width(), preset.height()),
+                        "paired resolution " + preset);
+                assertEquals(preset.width() * 9, preset.height() * 16, "preset aspect ratio " + preset);
+                for (UiLanguage language : List.of(UiLanguage.ZH_CN, UiLanguage.EN_US)) {
+                    assertContains(preset.label(language), preset.width() + " × " + preset.height(),
+                            "preset shows its pixel dimensions: " + preset + " / " + language);
+                }
+            }
+        }
+        assertEquals(ResolutionPreset.FULL_HD, ResolutionPreset.forSize(1920, 1080), "default preset");
+        assertEquals(ResolutionPreset.CUSTOM, ResolutionPreset.forSize(3440, 1440), "ultrawide custom mode");
+        assertEquals(ResolutionPreset.CUSTOM, ResolutionPreset.forSize(3840, 720), "mixed dimensions stay custom");
+        assertEquals("自定义", ResolutionPreset.CUSTOM.label(UiLanguage.ZH_CN), "Chinese custom label");
+        assertContains(ResolutionPreset.QUAD_HD.label(UiLanguage.EN_US), "1440p", "1440p terminology");
+        assertContains(ResolutionPreset.ULTRA_HD.label(UiLanguage.EN_US), "4K", "4K terminology");
+    }
+
+    private static void onlyServiceChangesRequireRestart() {
+        LauncherSettings baseline = LauncherSettings.defaults();
+        LauncherSettings preferencesOnly = new LauncherSettings(baseline.serverName(), 5001, 1920, 1080, 60,
+                "gstreamer", false, true, true, true, false, UiLanguage.EN_US);
+        assertEquals(true, baseline.sameServiceConfiguration(preferencesOnly), "launcher preferences apply live");
+        assertEquals(true, baseline.sameServiceConfiguration(baseline.withLanguage(UiLanguage.ZH_CN)),
+                "language does not restart casting");
+        assertEquals(false, baseline.sameServiceConfiguration(null), "no applied service configuration");
+        List<LauncherSettings> serviceChanges = List.of(
+                new LauncherSettings("Bedroom", 5001, 1920, 1080, 60, "gstreamer", false, false, false, false, true, UiLanguage.SYSTEM),
+                new LauncherSettings(baseline.serverName(), 7001, 1920, 1080, 60, "gstreamer", false, false, false, false, true, UiLanguage.SYSTEM),
+                new LauncherSettings(baseline.serverName(), 5001, 2560, 1080, 60, "gstreamer", false, false, false, false, true, UiLanguage.SYSTEM),
+                new LauncherSettings(baseline.serverName(), 5001, 1920, 1440, 60, "gstreamer", false, false, false, false, true, UiLanguage.SYSTEM),
+                new LauncherSettings(baseline.serverName(), 5001, 1920, 1080, 30, "gstreamer", false, false, false, false, true, UiLanguage.SYSTEM),
+                new LauncherSettings(baseline.serverName(), 5001, 1920, 1080, 60, "ffmpeg", false, false, false, false, true, UiLanguage.SYSTEM),
+                new LauncherSettings(baseline.serverName(), 5001, 1920, 1080, 60, "gstreamer", true, false, false, false, true, UiLanguage.SYSTEM));
+        for (LauncherSettings changed : serviceChanges) {
+            assertEquals(false, baseline.sameServiceConfiguration(changed), "service change needs restart: " + changed);
+        }
+        assertEquals(false, baseline.unverifiedVideoMode(), "default video mode verified");
+        assertEquals(false, new LauncherSettings(baseline.serverName(), 5001, 3840, 2160, 60,
+                "gstreamer", false, false, false, false, true, UiLanguage.SYSTEM).unverifiedVideoMode(), "4K/60 verified");
+        assertEquals(true, new LauncherSettings(baseline.serverName(), 5001, 1920, 1080, 120,
+                "gstreamer", false, false, false, false, true, UiLanguage.SYSTEM).unverifiedVideoMode(), "120 FPS is experimental");
+        assertEquals(true, new LauncherSettings(baseline.serverName(), 5001, 7680, 4320, 240,
+                "gstreamer", false, false, false, false, true, UiLanguage.SYSTEM).unverifiedVideoMode(), "8K/240 is experimental");
+    }
+
+    private static void resettingGuiSettingsPreservesAdvancedConfiguration() throws Exception {
+        Path directory = Files.createTempDirectory("airplay-reset-settings-test-");
+        try {
+            ConfigStore store = new ConfigStore(directory.resolve("application.properties"));
+            Files.write(store.path(), List.of("airplay.airtunesPort = 7001", "custom.setting=keep-me",
+                    "player.tray.enabled=true", "launcher.language=en-US"), StandardCharsets.UTF_8);
+            LauncherSettings restored = LauncherSettings.defaults(store.load().airtunesPort());
+            store.saveGuiSettings(restored);
+            assertEquals(restored, store.load(), "GUI defaults restored");
+            assertEquals(7001, store.load().airtunesPort(), "custom port survives reset");
+            String saved = Files.readString(store.path());
+            assertContains(saved, "airplay.airtunesPort = 7001", "hidden port line preserved on reset");
+            assertContains(saved, "custom.setting=keep-me", "unknown option preserved on reset");
+            assertContains(saved, "player.tray.enabled=true", "legacy tray option preserved on reset");
+            assertContains(saved, "launcher.language=system", "reset restores system language");
+        } finally {
+            deleteTree(directory);
+        }
+    }
+
+    private static void externalPlayersAreCheckedBeforeStartup() throws Exception {
+        Path directory = Files.createTempDirectory("airplay-player-availability-test-");
+        try {
+            Path base = Files.createDirectory(directory.resolve("application"));
+            Path tools = Files.createDirectory(directory.resolve("external tools"));
+            assertEquals(true, PlayerOption.FFMPEG.findExecutable(base, null) == null, "missing FFplay");
+            PlayerOption.GSTREAMER.requireAvailable(base, null);
+            PlayerOption.H264_DUMP.requireAvailable(base, null);
+            try {
+                PlayerOption.FFMPEG.requireAvailable(base, null);
+                throw new AssertionError("Missing FFplay should fail before starting the server");
+            } catch (LauncherIOException expected) {
+                assertContains(LauncherMessages.failureText(UiLanguage.EN_US, expected), "ffplay.exe",
+                        "actionable dependency error");
+            }
+            Path ffplay = Files.createFile(tools.resolve("ffplay.exe"));
+            String searchPath = "\"" + tools + "\"" + java.io.File.pathSeparator + "invalid\u0000path";
+            assertEquals(ffplay, PlayerOption.FFMPEG.findExecutable(base, searchPath), "quoted PATH with spaces");
+            PlayerOption.FFMPEG.requireAvailable(base, searchPath);
+            Path vlc = Files.createFile(base.resolve("vlc.exe"));
+            assertEquals(vlc, PlayerOption.VLC.findExecutable(base, ""), "player in application directory");
+            assertEquals(PlayerOption.FFMPEG, PlayerOption.fromImplementation("ffmpeg"), "player setting lookup");
+            assertContains(PlayerOption.H264_DUMP.hint(UiLanguage.EN_US), "without a playback window",
+                    "dump mode clearly labeled");
+        } finally {
+            deleteTree(directory);
+        }
+    }
+
+    private static void trayPreferencesPersistAndControlWindowBehavior() throws Exception {
+        Path directory = Files.createTempDirectory("airplay-window-preferences-test-");
+        try {
+            ConfigStore store = new ConfigStore(directory.resolve("application.properties"));
+            Files.writeString(store.path(), "launcher.language=en-US\n", StandardCharsets.UTF_8);
+            LauncherSettings previous = store.load();
+            assertEquals(false, previous.startMinimized(), "legacy settings show the window by default");
+            assertEquals(true, previous.closeToTray(), "legacy settings retain close-to-tray behavior");
+            LauncherSettings changed = new LauncherSettings(previous.serverName(), previous.airtunesPort(),
+                    previous.width(), previous.height(), previous.fps(), previous.playerImplementation(),
+                    previous.startFullscreen(), previous.autoStartEnabled(), previous.autoRunService(),
+                    true, false, previous.language());
+            store.saveGuiSettings(changed);
+            assertEquals(changed, store.load(), "tray preferences round trip");
+            assertEquals(true, previous.sameServiceConfiguration(changed), "window preferences do not restart service");
+            String saved = Files.readString(store.path());
+            assertContains(saved, "launcher.startMinimized=true", "startup preference saved");
+            assertContains(saved, "launcher.closeToTray=false", "close preference saved");
+            store.saveLanguage(UiLanguage.ZH_CN);
+            assertEquals(changed.withLanguage(UiLanguage.ZH_CN), store.load(), "language preserves tray preferences");
+            store.saveGuiSettings(LauncherSettings.defaults(previous.airtunesPort()));
+            assertEquals(false, store.load().startMinimized(), "reset restores visible startup");
+            assertEquals(true, store.load().closeToTray(), "reset restores close to tray");
+        } finally {
+            deleteTree(directory);
+        }
+
+        assertEquals(false, LauncherFrame.startsInTray(false, false, false, true), "normal visible startup");
+        assertEquals(true, LauncherFrame.startsInTray(true, false, false, true), "manual launch follows tray preference");
+        assertEquals(true, LauncherFrame.startsInTray(true, false, true, true), "Windows startup follows tray preference");
+        assertEquals(false, LauncherFrame.startsInTray(false, false, true, true), "Windows startup can show window");
+        assertEquals(false, LauncherFrame.startsInTray(false, true, true, true), "legacy startup flag cannot override preference");
+        assertEquals(true, LauncherFrame.startsInTray(false, true, false, true), "explicit manual minimized argument");
+        assertEquals(false, LauncherFrame.startsInTray(true, true, true, false), "no tray means visible startup");
+        assertEquals(true, LauncherFrame.closesToTray(true, true), "close hides to tray when enabled");
+        assertEquals(false, LauncherFrame.closesToTray(false, true), "close exits when disabled");
+        assertEquals(false, LauncherFrame.closesToTray(true, false), "close exits without a tray");
+    }
+
+    private static void resolutionAndFrameRateLabelsFit() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            for (UiLanguage language : List.of(UiLanguage.ZH_CN, UiLanguage.EN_US)) {
+                JPanel panel = new JPanel(new GridBagLayout());
+                panel.setBorder(BorderFactory.createTitledBorder(
+                        LauncherMessages.text(language, LauncherMessages.Key.CONFIGURATION_SECTION)));
+                GridBagConstraints constraints = LauncherFrame.formConstraints(new Insets(6, 8, 6, 8));
+                JLabel resolutionLabel = new JLabel(LauncherMessages.text(language, LauncherMessages.Key.RESOLUTION_LABEL));
+                JComboBox<String> resolutionCombo = new JComboBox<>(new String[]{ResolutionPreset.FULL_HD.label(language)});
+                JLabel fpsLabel = new JLabel(LauncherMessages.text(language, LauncherMessages.Key.FPS_LABEL));
+                JComboBox<Integer> fpsCombo = new JComboBox<>(new Integer[]{60});
+                fpsCombo.setEditable(true);
+                LauncherFrame.addRow(panel, constraints, resolutionLabel, resolutionCombo);
+                LauncherFrame.addRow(panel, constraints, fpsLabel, fpsCombo);
+                for (int width : List.of(340, 420)) {
+                    String context = language.code() + " / " + width;
+                    panel.setSize(width, panel.getPreferredSize().height);
+                    panel.doLayout();
+                    assertEquals(true, resolutionLabel.getWidth() >= resolutionLabel.getPreferredSize().width,
+                            "resolution label fits: " + context);
+                    assertEquals(true, resolutionCombo.getWidth() >= resolutionCombo.getPreferredSize().width,
+                            "resolution pixel dimensions fit: " + context);
+                    assertEquals(true, fpsLabel.getWidth() >= fpsLabel.getPreferredSize().width,
+                            "frame rate label and unit fit: " + context);
+                    assertEquals(true, fpsCombo.getWidth() >= fpsCombo.getPreferredSize().width,
+                            "frame rate editor fits: " + context);
+                }
+            }
+        });
+    }
+
+    private static void advancedPlayerRowsDoNotOverlap() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            for (UiLanguage language : List.of(UiLanguage.ZH_CN, UiLanguage.EN_US)) {
+                for (PlayerOption player : PlayerOption.values()) {
+                    GridBagLayout layout = new GridBagLayout();
+                    JPanel panel = new JPanel(layout);
+                    GridBagConstraints constraints = LauncherFrame.formConstraints(new Insets(4, 0, 4, 0));
+                    JLabel playerLabel = new JLabel(LauncherMessages.text(language, LauncherMessages.Key.PLAYER_LABEL));
+                    JComboBox<String> playerCombo = new JComboBox<>(new String[]{player.label(language)});
+                    JLabel hint = new JLabel("<html><body style='width: 230px'>"
+                            + player.hint(language) + "</body></html>");
+                    JLabel dependency = new JLabel(player.executable() == null ? ""
+                            : LauncherMessages.text(language, LauncherMessages.Key.PLAYER_AVAILABLE,
+                                    player.executable()));
+                    dependency.setVisible(player.executable() != null);
+                    LauncherFrame.addRow(panel, constraints, playerLabel, playerCombo);
+                    LauncherFrame.addWideRow(panel, constraints, hint);
+                    LauncherFrame.addWideRow(panel, constraints, dependency);
+                    assertEquals(0, layout.getConstraints(playerLabel).gridy, "player label starts on row zero");
+                    assertEquals(0, layout.getConstraints(playerCombo).gridy, "player selector shares label row");
+                    assertEquals(1, layout.getConstraints(hint).gridy, "hint uses its own row");
+                    assertEquals(2, layout.getConstraints(dependency).gridy, "dependency status uses another row");
+                    for (int width : List.of(320, 340, 420)) {
+                        String context = player + " / " + language.code() + " / " + width;
+                        panel.setSize(width, panel.getPreferredSize().height);
+                        panel.doLayout();
+                        assertEquals(true, playerCombo.getWidth() > 0, "player selector remains visible: " + context);
+                        if (width >= 340) {
+                            assertEquals(true, playerCombo.getWidth() >= playerCombo.getPreferredSize().width,
+                                    "player choice is not clipped at normal widths: " + context);
+                        }
+                        assertEquals(true, playerCombo.getY() + playerCombo.getHeight() <= hint.getY(),
+                                "selector and hint do not overlap: " + context);
+                        assertEquals(true, playerLabel.getY() + playerLabel.getHeight() <= hint.getY(),
+                                "label and hint do not overlap: " + context);
+                        if (dependency.isVisible()) {
+                            assertEquals(true, hint.getY() + hint.getHeight() <= dependency.getY(),
+                                    "hint and dependency status do not overlap: " + context);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     private static void expectFailure(Runnable action) {

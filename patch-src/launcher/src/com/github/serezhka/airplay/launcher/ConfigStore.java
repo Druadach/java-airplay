@@ -40,6 +40,8 @@ final class ConfigStore {
                 bool(properties, "player.gstreamer.fullscreen", defaults.startFullscreen()),
                 bool(properties, "launcher.autoStart.enabled", defaults.autoStartEnabled()),
                 bool(properties, "launcher.autoStart.runService", defaults.autoRunService()),
+                bool(properties, "launcher.startMinimized", defaults.startMinimized()),
+                bool(properties, "launcher.closeToTray", defaults.closeToTray()),
                 UiLanguage.fromCode(properties.getProperty("launcher.language")));
     }
 
@@ -70,6 +72,8 @@ final class ConfigStore {
         values.put("player.gstreamer.fullscreen", Boolean.toString(settings.startFullscreen()));
         values.put("launcher.autoStart.enabled", Boolean.toString(settings.autoStartEnabled()));
         values.put("launcher.autoStart.runService", Boolean.toString(settings.autoRunService()));
+        values.put("launcher.startMinimized", Boolean.toString(settings.startMinimized()));
+        values.put("launcher.closeToTray", Boolean.toString(settings.closeToTray()));
         values.put("launcher.language", settings.language().code());
         return values;
     }

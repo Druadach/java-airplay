@@ -123,6 +123,7 @@ final class ServerProcessManager implements AutoCloseable {
     private Process process;
     private ControlSession controlSession;
     private Snapshot snapshot = Snapshot.stopped();
+    private volatile LauncherSettings activeSettings;
     private boolean expectedStop;
     private boolean closed;
     private long generation;
@@ -151,12 +152,25 @@ final class ServerProcessManager implements AutoCloseable {
         return runLifecycle(this::startBlocking);
     }
 
+    LauncherSettings activeSettings() {
+        return activeSettings;
+    }
+
     CompletableFuture<Void> stopAsync() {
         return runLifecycle(this::stopBlocking);
     }
 
+    boolean isProcessRunning() {
+        synchronized (monitor) {
+            return process != null && process.isAlive();
+        }
+    }
+
     CompletableFuture<Void> restartAsync() {
         return runLifecycle(() -> {
+            LauncherSettings settings = new ConfigStore(configuration).load();
+            PlayerOption.fromImplementation(settings.playerImplementation())
+                    .requireAvailable(baseDirectory, System.getenv("PATH"));
             stopBlocking();
             startBlocking();
         });
@@ -189,7 +203,8 @@ final class ServerProcessManager implements AutoCloseable {
         requireFile(serverJar, LauncherMessages.Key.ERROR_MISSING_SERVER_JAR);
         requireFile(configuration, LauncherMessages.Key.ERROR_MISSING_CONFIGURATION);
 
-        int airPlayPort = new ConfigStore(configuration).load().airtunesPort();
+        LauncherSettings settings = new ConfigStore(configuration).load();
+        int airPlayPort = settings.airtunesPort();
         ControlSession newSession = new ControlSession(findAvailablePort(airPlayPort), randomToken());
         long newGeneration;
         synchronized (monitor) {
@@ -219,6 +234,9 @@ final class ServerProcessManager implements AutoCloseable {
         configureEnvironment(processBuilder);
 
         try {
+            PlayerOption.fromImplementation(settings.playerImplementation())
+                    .requireAvailable(baseDirectory, System.getenv("PATH"));
+            activeSettings = settings;
             Process startedProcess = processBuilder.start();
             boolean rejectStartedProcess;
             synchronized (monitor) {

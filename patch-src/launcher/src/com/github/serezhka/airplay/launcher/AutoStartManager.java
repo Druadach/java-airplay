@@ -32,10 +32,9 @@ final class AutoStartManager {
     /**
      * Enables auto-start by adding a registry entry pointing to the launcher executable.
      * @param executablePath Path to AirPlayReceiver.exe or java-airplay-launcher.jar
-     * @param startMinimized If true, adds --minimized and --auto-start flags
      */
-    static void enable(Path executablePath, boolean startMinimized) throws IOException, InterruptedException {
-        String command = startupCommand(executablePath, startMinimized);
+    static void enable(Path executablePath) throws IOException, InterruptedException {
+        String command = startupCommand(executablePath);
         int exitCode = runRegistry("add", REGISTRY_KEY,
                 "/v", APP_NAME, "/t", "REG_SZ", "/d", command, "/f");
         if (exitCode != 0) {
@@ -43,7 +42,7 @@ final class AutoStartManager {
         }
     }
 
-    static String startupCommand(Path executablePath, boolean startMinimized) throws IOException {
+    static String startupCommand(Path executablePath) throws IOException {
         executablePath = executablePath.toAbsolutePath().normalize();
         if (!Files.isRegularFile(executablePath)) {
             throw new IOException("Executable not found: " + executablePath);
@@ -59,11 +58,7 @@ final class AutoStartManager {
             command = "\"" + java + "\" -Dfile.encoding=UTF-8 -jar " + command
                     + " \"--base-dir=" + directory + "\"";
         }
-        if (startMinimized) {
-            command += " --minimized --auto-start";
-        }
-
-        return command;
+        return command + " --auto-start";
     }
 
     /**

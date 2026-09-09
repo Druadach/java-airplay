@@ -3,6 +3,7 @@ package com.github.serezhka.airplay.launcher;
 import java.util.Locale;
 
 public enum UiLanguage {
+    SYSTEM("system", "跟随系统 / System default", null),
     ZH_CN("zh-CN", "中文", Locale.SIMPLIFIED_CHINESE),
     EN_US("en-US", "English", Locale.US);
 
@@ -25,7 +26,11 @@ public enum UiLanguage {
     }
 
     public Locale locale() {
-        return locale;
+        return resolved().locale;
+    }
+
+    public UiLanguage resolved() {
+        return this == SYSTEM ? systemDefault() : this;
     }
 
     @Override
@@ -35,7 +40,7 @@ public enum UiLanguage {
 
     public static UiLanguage fromCode(String code) {
         if (code == null || code.isBlank()) {
-            return systemDefault();
+            return SYSTEM;
         }
 
         String normalized = code.trim().replace('_', '-');
@@ -50,7 +55,7 @@ public enum UiLanguage {
         if (normalized.equalsIgnoreCase(Locale.ENGLISH.getLanguage())) {
             return EN_US;
         }
-        return systemDefault();
+        return SYSTEM;
     }
 
     public static UiLanguage systemDefault() {

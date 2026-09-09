@@ -16,10 +16,14 @@ $mainSourceRoot = Join-Path $patchRoot 'patch-src\main\java'
 $testSourceRoot = Join-Path $patchRoot 'patch-src\test\java'
 $launcherSourceRoot = Join-Path $patchRoot 'patch-src\launcher\src'
 $launcherTestRoot = Join-Path $patchRoot 'patch-src\launcher\test'
+$versionFile = Join-Path $patchRoot 'VERSION'
 $trayIconSource = Join-Path $patchRoot 'packaging\tray_icon.png'
+$updaterSource = Join-Path $patchRoot 'packaging\AirPlayUpdater.cs'
+$updaterProtocol = Join-Path $patchRoot 'patch-src\launcher\resources\airplay-update-protocol.txt'
+$csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 
 foreach ($requiredPath in @($sourceJar, $javac, $java, $javaw, $jar, $mainSourceRoot, $testSourceRoot,
-        $launcherSourceRoot, $launcherTestRoot)) {
+        $launcherSourceRoot, $launcherTestRoot, $versionFile, $updaterSource, $updaterProtocol, $csc)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "Required path does not exist: $requiredPath"
     }
@@ -45,6 +49,7 @@ $candidateJar = Join-Path $patchTempRoot 'java-airplay-server-fixed.jar'
 $candidateLauncherJar = Join-Path $patchTempRoot 'java-airplay-launcher.jar'
 $launcherValidationDir = Join-Path $patchTempRoot 'launcher-validation'
 $nativeLauncherTestExe = Join-Path $patchTempRoot 'launcher-argument-test.exe'
+$nativeUpdaterTestExe = Join-Path $patchTempRoot 'updater-transaction-test.exe'
 
 try {
     foreach ($directory in @($libraryDir, $mainOutput, $testOutput, $launcherOutput,
@@ -95,6 +100,16 @@ try {
 
     $launcherSources = @(Get-ChildItem -LiteralPath $launcherSourceRoot -Recurse -Filter '*.java' |
             ForEach-Object FullName)
+    $updaterOutput = Join-Path $launcherOutput 'updater'
+    [void][IO.Directory]::CreateDirectory($updaterOutput)
+    & $csc -nologo -codepage:65001 -utf8output -target:winexe `
+            -main:AirPlayLauncher.Update.UpdaterProgram '-r:System.Windows.Forms.dll' `
+            "-out:$(Join-Path $updaterOutput 'AirPlayUpdater.exe')" $updaterSource
+    if ($LASTEXITCODE -ne 0) {
+        throw "Native updater compilation failed with exit code $LASTEXITCODE"
+    }
+    Copy-Item -LiteralPath $updaterProtocol -Destination (Join-Path $launcherOutput 'airplay-update-protocol.txt')
+    Copy-Item -LiteralPath $versionFile -Destination (Join-Path $launcherOutput 'airplay-version.txt')
     & $javac --release 17 -encoding UTF-8 -d $launcherOutput $launcherSources
     if ($LASTEXITCODE -ne 0) {
         throw "Launcher compilation failed with exit code $LASTEXITCODE"
@@ -121,10 +136,6 @@ try {
         throw "Native menu font configuration tests failed with exit code $LASTEXITCODE"
     }
 
-    $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-    if (-not (Test-Path -LiteralPath $csc)) {
-        throw "Required native compiler does not exist: $csc"
-    }
     & $csc -nologo -target:exe -main:AirPlayLauncher.LauncherArgumentTest `
             '-r:System.Windows.Forms.dll' "-out:$nativeLauncherTestExe" `
             (Join-Path $patchRoot 'packaging\AirPlayReceiver.cs') `
@@ -135,6 +146,17 @@ try {
     & $nativeLauncherTestExe
     if ($LASTEXITCODE -ne 0) {
         throw "Native launcher argument tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $csc -nologo -codepage:65001 -utf8output -target:exe `
+            -main:AirPlayLauncher.Update.UpdaterTransactionTest '-r:System.Windows.Forms.dll' `
+            "-out:$nativeUpdaterTestExe" $updaterSource (Join-Path $patchRoot 'packaging\UpdaterTransactionTest.cs')
+    if ($LASTEXITCODE -ne 0) {
+        throw "Native updater test compilation failed with exit code $LASTEXITCODE"
+    }
+    & $nativeUpdaterTestExe
+    if ($LASTEXITCODE -ne 0) {
+        throw "Native updater transaction tests failed with exit code $LASTEXITCODE"
     }
 
     $mainSources = @(Get-ChildItem -LiteralPath $mainSourceRoot -Recurse -Filter '*.java' |
@@ -380,6 +402,12 @@ try {
     & $jar --list --file $candidateLauncherJar | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "Launcher JAR validation failed with exit code $LASTEXITCODE"
+    }
+
+    & $java '-Djava.awt.headless=true' -cp "$launcherTestOutput;$candidateLauncherJar" `
+            com.github.serezhka.airplay.launcher.LauncherCoreTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Packaged launcher tests failed with exit code $LASTEXITCODE"
     }
 
     $validationJavaBin = Join-Path $launcherValidationDir 'jre\bin'

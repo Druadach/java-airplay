@@ -22,8 +22,8 @@ This repository provides two ready-to-run Windows distributions. Direct links:
 
 | File | Type | Description |
 | --- | --- | --- |
-| [AirPlayReceiver_Setup_1.2.2.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.2/AirPlayReceiver_Setup_1.2.2.exe) | Installer | Guided setup: choose the install folder, create Start-menu/desktop shortcuts, uninstall from "Settings → Apps"; the installer grants write permission on the install folder so settings can be saved without admin rights |
-| [AirPlayReceiver_Portable_1.2.2.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.2/AirPlayReceiver_Portable_1.2.2.zip) | Portable | Extract anywhere and double-click `AirPlayReceiver.exe`; configuration is kept in `application.properties` next to the exe |
+| [AirPlayReceiver_Setup_1.2.3.exe](https://github.com/Druadach/java-airplay/releases/download/v1.2.3/AirPlayReceiver_Setup_1.2.3.exe) | Installer | Guided setup: choose the install folder, create Start-menu/desktop shortcuts, uninstall from "Settings → Apps"; the installer grants write permission on the install folder so settings can be saved without admin rights |
+| [AirPlayReceiver_Portable_1.2.3.zip](https://github.com/Druadach/java-airplay/releases/download/v1.2.3/AirPlayReceiver_Portable_1.2.3.zip) | Portable | Extract anywhere and double-click `AirPlayReceiver.exe`; configuration is kept in `application.properties` next to the exe |
 
 ---
 
@@ -34,7 +34,9 @@ This repository provides two ready-to-run Windows distributions. Direct links:
    The original `run_airplay_gui.bat` works identically.
 
 2. **Configure and Start**
-   Switch between `中文` and `English` from the top of the window at any time. Set the server name, resolution, frame rate, player, and startup display mode; changes are saved automatically. Then click `Start`. Each width and height choice is labeled with its resolution tier (`HD / FHD / 2K / 4K` — 720P, 1080P, 1440P and 2160P respectively; for example `3840 (4K)` and `2160 (4K)`) and remains editable for custom keyboard input. The status changes to `Running` when AirPlay is ready. While running, the service can also be started or stopped directly from the launcher tray menu without opening the main window.
+   Defaults are **1080p / 60 FPS, built-in GStreamer, windowed mode, and system language**, with automatic startup disabled. Select `跟随系统 / System default`, `中文`, or `English` at the top of the window. Under `AirPlay Settings`, choose an AirPlay name, video resolution, and maximum frame rate, then click `Start`. Resolution presets are `720p / 1080p / 1440p / 4K / Custom`, with their pixel dimensions shown; width and height inputs appear only for `Custom`. `Playback Mode` is under `Advanced Settings` and defaults to `Built-in player (recommended)`. The status changes to `Running` when AirPlay is ready. The service can also be started or stopped directly from the launcher tray menu.
+
+   Changes save automatically with visible save status and validation errors. Changing the AirPlay name, video capabilities, playback mode, or default fullscreen mode while running shows a restart notice. `Apply & Restart` interrupts the current casting session; reconnect afterwards. Language and startup preferences do not require a service restart. Hover over the name field, startup options, or action buttons for explanations.
 
 3. **Connect from Apple Devices**
    Ensure your mobile device/Mac and PC are on the same local network (Wi-Fi or wired Ethernet both work) → Open "Control Center" → Tap "Screen Mirroring" → Select your AirPlay server name.
@@ -69,25 +71,58 @@ Right-click the launcher tray icon and select `Exit`. In command-line mode, use 
 
 ## 3. Configuration Settings
 
-Settings can be edited directly in the app's control panel, or by opening `application.properties` with Notepad. **Changes will only take effect after restarting the software.**
+Use the control panel for normal changes. Before editing `application.properties` manually, exit the launcher through its tray menu so automatic saves cannot overwrite your edits. The next launch reads the updated file. This default configuration can be copied directly:
 
 ```properties
-airplay.serverName=Mukar          # Device name visible on sender devices
-airplay.airtunesPort=5001         # AirPlay control port
-airplay.width=1920                # Screen width
-airplay.height=1080               # Screen height
-airplay.fps=60                    # Frames per second (higher = smoother, but uses more resources)
-player.implementation=gstreamer   # Player backend (gstreamer and ffmpeg are verified working)
-player.gstreamer.fullscreen=false # Use borderless fullscreen with GStreamer
-player.tray.enabled=true          # Enable or disable system tray icon
-launcher.language=en-US           # GUI language: zh-CN or en-US
-launcher.autoStart.enabled=false  # Launch the app at login (adds a registry run entry)
-launcher.autoStart.runService=false # Auto-start the AirPlay service when the app launches
+airplay.serverName=AirPlay - PC
+airplay.airtunesPort=5001
+airplay.width=1920
+airplay.height=1080
+airplay.fps=60
+player.implementation=gstreamer
+player.gstreamer.fullscreen=false
+player.tray.enabled=true
+launcher.language=system
+launcher.autoStart.enabled=false
+launcher.autoStart.runService=false
+launcher.startMinimized=false
+launcher.closeToTray=true
 ```
 
-**Regarding Resolution and Frame Rate:**
+- **AirPlay Name** appears in the AirPlay / Screen Mirroring list on your iPhone, iPad, or Mac. The default is `AirPlay - PC`.
+- **Video Resolution / Max Frame Rate (fps)** tell the sender what this PC can receive, rather than forcing the actual video quality. Presets include pixel dimensions, such as `1080p (1920 × 1080)`, and custom width and height are measured in pixels.
+- **Start with Windows** registers a sign-in startup entry for the current user. Separate preferences control window visibility and automatic AirPlay reception. Editing `launcher.autoStart.enabled` alone does not update the Windows registry.
+- **Receive AirPlay when the app opens** enables reception without clicking `Start`, independently of Windows startup. It works for both manual and automatic launches. You still need to select this PC on your Apple device; this option does not automatically connect or start mirroring.
+- **Start minimized to tray** is off by default. When enabled, both manual and Windows startup hide the main window; reopen it from the tray. Changes apply on the next launch without updating the startup registry entry.
+- **Close to tray** is on by default. Closing the main window hides it without stopping the service. When unchecked, closing exits the app and stops casting. The tray menu's `Exit` action always exits.
+- **Without a system tray**, startup shows the main window and closing exits, so the application cannot become inaccessible.
+- **Custom resolution** width and height choices are plain numbers such as `3840` and `2160`, and still accept keyboard input.
+- **Start AirPlay in fullscreen** sets the next built-in GStreamer playback mode, not the main app window. Buttons under `Current AirPlay Window` and `F11 / Esc` change the current video window immediately without changing this preference.
+- **Language** uses `跟随系统 / System default` (`system`) to keep following the OS, or `zh-CN` / `en-US` for an explicit language. Changes apply immediately.
+- **Advanced Settings → Playback Mode** offers `Built-in player (recommended)` (GStreamer), FFplay from FFmpeg, and VLC. External players require a separate installation, checked on selection and before service startup. `Save raw video (debug)` writes raw `dump.h264` data without a playback window; it is not a normal recording feature. The underlying configuration values remain `gstreamer / ffmpeg / vlc / h264-dump`.
+- **Restore Defaults** resets visible preferences and disables automatic startup after confirmation. Startup shows the main window, and closing minimizes to tray. Hidden ports and other configuration-file options are preserved; the current casting session continues until you restart the service.
+
+- **Runtime Log** is hidden on each app launch. Click `Show Runtime Log` to expand it and `Hide Runtime Log` to collapse it. Collapsing does not clear the history or stop reception; messages received while hidden remain available.
+
+### Checking for Updates and Automatic Installation
+
+The bottom of the main window shows the current app version. Use `Check for Updates` there or in the tray menu to check manually.
+The launcher reads `tag_name` from this repository's [latest stable GitHub release](https://github.com/Druadach/java-airplay/releases/latest), compares numeric versions (`1.10.0` is newer than `1.9.0`), excludes drafts/prereleases, and never offers a downgrade.
+
+When a newer version is available, choose `Update Automatically` to download a compatible portable package, or `Open Release Page` to read the changes and download manually. Checks and downloads run in the background. Downloads show progress and can be cancelled. Network access requires your click; there are no unattended startup downloads or installations.
+
+The updater verifies the GitHub SHA-256 digest, bundled version and archive paths before asking you to `Update and Restart`. Only this second confirmation stops casting and replaces the runtime. **Your application.properties, AirPlay name, video options and startup/tray preferences are preserved**, and reception returns to its previous running/stopped state after restart. Choosing `Not Now` removes the staged download; you can download it again later.
+
+Complete Windows x64 installer and portable distributions are supported. Missing compatible assets/digests, or packages without the startup-confirmation protocol, require a manual update. Installation or startup validation failure triggers a rollback attempt. If another process prevents restoration, backups and diagnostics are retained rather than forcibly overwritten.
+
+Previous runtime files remain under `.airplay-update/<job ID>/backup` in the installation directory, alongside `update.log`. After confirming the new version works, and while no update is running, you may delete that job directory to reclaim space. Do not delete backups after an incomplete rollback.
+
+The app, About dialog, and installer share the root `VERSION` file. The build embeds it in the launcher JAR, so no external version file is required at runtime. Before publishing, update `VERSION`, rebuild and refresh the packaging stage, and use the matching `vX.Y.Z` GitHub Release tag.
+
+### Resolution and Frame Rate
 These three parameters only **declare to the sender what the AirPlay receiver supports**. The actual stream quality is determined by the AirPlay sender device; the server itself does not perform downscaling or transcoding.
 The highest profile verified in this build is **3840 × 2160 @ 60 FPS**.
+The GUI accepts integer widths of `320–7680`, heights of `240–4320`, and maximum frame rates of `1–240`. Values above the verified 4K / 60 FPS range show an experimental warning; accepting a value does not guarantee sender or receiver support.
 
 ---
 
@@ -206,7 +241,8 @@ The service listens on port `5001` for control connections; media ports are assi
 | --- | --- |
 | Mirroring Codec | H.264/AVC byte-stream, access-unit aligned, BT.709 caps |
 | Default Announcement | 1920×1080, max 60 FPS, refresh rate declared as 60 Hz |
-| Code-level Limit | None. Width/Height/FPS are signed 32-bit integers passed directly without range checks; use positive values. |
+| GUI Input Bounds | Width 320–7680, height 240–4320, maximum FPS 1–240; values above the verified range show a warning. |
+| Command-line Server | Width/height/FPS are signed 32-bit integers passed directly, without GUI range validation. |
 | Highest Verified Mode | 3840×2160 (4K) @ 60 FPS |
 | Decoder Validation | H.264 High Profile Level 5.2 @ 3840×2160 60 FPS accepted by GStreamer pipeline |
 | Beyond 4K 60 FPS | Unverified; not guaranteed |

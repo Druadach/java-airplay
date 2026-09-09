@@ -1,7 +1,9 @@
 ﻿; AirPlay Receiver installer — bundles JRE21 + GStreamer runtime + patched server jar
 #define MyAppName "AirPlay 接收器"
 #define MyAppNameEn "AirPlay Receiver"
-#define MyAppVersion "1.2.2"
+#define VersionFile FileOpen(AddBackslash(SourcePath) + "..\VERSION")
+#define MyAppVersion Trim(FileRead(VersionFile))
+#expr FileClose(VersionFile)
 #define MyAppExeName "AirPlayReceiver.exe"
 
 [Setup]
@@ -46,7 +48,8 @@ Type: files; Name: "{autodesktop}\AirPlay 接收端.lnk"
 Type: filesandordirs; Name: "{commonprograms}\AirPlay 接收端"
 
 [Files]
-Source: "stage\AirPlay接收器\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "stage\AirPlay接收器\*"; DestDir: "{app}"; Excludes: "application.properties"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "stage\AirPlay接收器\application.properties"; DestDir: "{app}"; Flags: onlyifdoesntexist uninsneveruninstall
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
