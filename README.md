@@ -138,6 +138,10 @@ When the sender changes its AirPlay volume, the receiver applies the requested
 and FFmpeg modes because FFmpeg mode uses GStreamer for audio; it does not change
 the Windows system volume.
 
+### Direct Playback Status
+
+YouTube / HLS direct playback integration has been rolled back and is not included in this build. Screen mirroring remains available; direct playback integration is deferred until upstream crash fixes are available and verified.
+
 ### GStreamer Borderless Fullscreen
 
 Enable borderless fullscreen with this option:
@@ -250,6 +254,7 @@ The service listens on port `5001` for control connections; media ports are assi
 
 ### Technical Details of Fixes
 
+- **RTP Audio Header:** Backported [upstream f51244f](https://github.com/serezhka/java-airplay/commit/f51244f074b6a7c918a33bbaf91d8858fe391cde) to decode timestamps and SSRC as unsigned 32-bit network-order values, fixing sign extension and incorrect SSRC byte selection. Regression tests cover both source classes and the patched server JAR.
 - **RTP Audio Sequence Number:** Treated sequence numbers as unsigned 16-bit integers to correctly handle the `65535 -> 0` rollover.
 - **Audio Jitter Buffer:** Implemented a bounded reordering window to prevent single UDP packet drops from causing permanent audio muting.
 - **GStreamer Memory Safety:** Ensured `unmap()` is strictly called on GStreamer audio/video buffers after a successful `map()`, prior to downstream pushing.
@@ -257,6 +262,7 @@ The service listens on port `5001` for control connections; media ports are assi
 - **System Tray Quit:** Performs Spring cleanup in the background and forces process termination after 500 ms so a blocked Bonjour shutdown cannot keep the application windows open.
 - **Netty Buffer Leak:** Released consumed `FullHttpRequest` objects in `ControlHandler`, resolving HTTP buffer leaks reported by Netty leak detector.
 - **FFmpeg Audio Mode:** Configured FFplay to handle low-latency H.264 video, while forwarding raw ALAC / AAC-ELD audio streams to the internal GStreamer decoder and audio sink.
+- **FFmpeg Video Lifecycle:** Adapted the video-process safeguards from [upstream 0992fcf](https://github.com/serezhka/java-airplay/commit/0992fcf93c579e243996cc9492b8dc2ee2646521): serialize video callbacks, close old input streams and processes on replacement, and skip frames without a live process. Failed writes also clean up the process; headless regression tests cover source and packaged classes.
 - **AirPlay Volume:** Parses RTSP `SET_PARAMETER` volume updates, applies them to the active GStreamer audio pipeline, and reports the current value through `GET_PARAMETER` without changing Windows system volume.
 - **Preemptive Session Hijacking:** On device switch, immediately revokes the previous device's control connection generation and media lease, drops late audio/video frames and delayed TEARDOWN requests, and synchronously resets the GStreamer H.264 decoding pipeline to eliminate reference frame corruption.
 

@@ -175,6 +175,12 @@ try {
     }
 
     & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
+            com.github.serezhka.airplay.server.internal.decoder.AudioDecoderRegressionTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Audio RTP decoder tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
             com.github.serezhka.airplay.server.internal.handler.audio.AudioHandlerRegressionTest
     if ($LASTEXITCODE -ne 0) {
         throw "Regression tests failed with exit code $LASTEXITCODE"
@@ -208,6 +214,12 @@ try {
             com.github.serezhka.airplay.server.internal.handler.session.SessionMediaCoordinatorVolumeTest
     if ($LASTEXITCODE -ne 0) {
         throw "Session volume coordination tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $java '-Djava.awt.headless=true' -cp "$testOutput;$mainOutput;$libraryDir\*" `
+            com.github.serezhka.airplay.player.ffmpeg.FFmpegPlayerVideoRegressionTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "FFmpeg video tests failed with exit code $LASTEXITCODE"
     }
 
     & $java -cp "$testOutput;$mainOutput;$libraryDir\*" `
@@ -253,6 +265,7 @@ try {
     Push-Location $mainOutput
     try {
         & $jar --update --file $patchedServerJar `
+                'com/github/serezhka/airplay/server/internal/decoder/AudioDecoder.class' `
                 'com/github/serezhka/airplay/server/internal/handler/audio/AudioHandler.class' `
                 'com/github/serezhka/airplay/server/internal/handler/control/ControlHandler.class' `
                 'com/github/serezhka/airplay/server/internal/handler/control/RTSPHandler.class' `
@@ -284,6 +297,12 @@ try {
         }
     } finally {
         Pop-Location
+    }
+
+    & $java -cp "$testOutput;$patchedServerJar;$libraryDir\*" `
+            com.github.serezhka.airplay.server.internal.decoder.AudioDecoderRegressionTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Packaged audio RTP decoder tests failed with exit code $LASTEXITCODE"
     }
 
     & $java -cp "$testOutput;$mainOutput;$patchedServerJar;$libraryDir\*" `
@@ -340,6 +359,20 @@ try {
     Copy-Item -LiteralPath $launcherIcon -Destination (Join-Path $fatJarStage $trayIconEntry)
 
     $stagedAppClasses = Join-Path $fatJarStage 'BOOT-INF\classes'
+    & $java '-Djava.awt.headless=true' `
+            -cp "$testOutput;$stagedAppClasses;$patchedFfmpegJar;$patchedGstreamerJar;$libraryDir\*" `
+            com.github.serezhka.airplay.player.ffmpeg.FFmpegPlayerVideoRegressionTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Packaged FFmpeg video tests failed with exit code $LASTEXITCODE"
+    }
+
+    & $java '-Djava.awt.headless=true' `
+            -cp "$testOutput;$stagedAppClasses;$patchedFfmpegJar;$patchedGstreamerJar;$libraryDir\*" `
+            com.github.serezhka.airplay.player.ffmpeg.FFmpegPlayerAudioRegressionTest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Packaged FFmpeg audio tests failed with exit code $LASTEXITCODE"
+    }
+
     & $java -cp "$testOutput;$stagedAppClasses;$patchedGstreamerJar;$appClassesDir;$libraryDir\*" `
             com.github.serezhka.airplay.player.gstreamer.GstFullscreenConfigurationTest
     if ($LASTEXITCODE -ne 0) {

@@ -141,6 +141,10 @@ GUI 接受宽度 `320–7680`、高度 `240–4320`、帧率 `1–240` 的整数
 音频输出。GStreamer 和 FFmpeg 模式都支持此功能，因为 FFmpeg 模式的音频仍由
 GStreamer 播放；该功能不会修改 Windows 系统音量。
 
+### 直投适配状态
+
+当前版本已回滚 YouTube／HLS 直投适配，保留屏幕镜像功能。直投功能暂缓适配，待上游修复崩溃问题并验证后再恢复。
+
 ### GStreamer 窗口/全屏模式切换
 
 设置以下选项可启用无标题栏全屏：
@@ -255,6 +259,7 @@ $env:GST_PLUGIN_PATH = "$PWD/gstreamer/lib/gstreamer-1.0"
 
 ### 修复的技术细节
 
+- 移植上游 [f51244f](https://github.com/serezhka/java-airplay/commit/f51244f074b6a7c918a33bbaf91d8858fe391cde) 的 RTP 音频头修复：时间戳和 SSRC 按网络字节序解析为无符号 32 位值，修正符号扩展及 SSRC 取错字节的问题；源码和补丁 JAR 均有对应回归测试。
 - RTP 音频序列号按无符号 16 位处理，正确处理 `65535 -> 0` 回绕。
 - 有界重排序窗口，避免单个 UDP 丢包导致音频永久静音。
 - GStreamer 音视频缓冲在 `map()` 成功后、推送下游前必定 `unmap()`。
@@ -264,6 +269,7 @@ $env:GST_PLUGIN_PATH = "$PWD/gstreamer/lib/gstreamer-1.0"
   消除 Netty leak detector 报告的 HTTP 缓冲泄漏。
 - FFmpeg 模式下 FFplay 负责低延迟 H.264 视频，
   ALAC / AAC-ELD 音频转发到内置 GStreamer 解码器与音频 sink。
+- 同步上游 [0992fcf](https://github.com/serezhka/java-airplay/commit/0992fcf93c579e243996cc9492b8dc2ee2646521) 的 FFmpeg 视频进程防护：串行处理视频回调，替换时关闭旧进程及其输入流，跳过无可用进程的视频帧；写入异常时也清理进程，源码和打包 JAR 均有无窗口回归测试。
 - 解析 RTSP `SET_PARAMETER` 的 AirPlay 音量并实时应用到当前 GStreamer 音频管线，
   `GET_PARAMETER` 返回当前值；不会修改 Windows 系统音量。
 - 设备抢占接管时，立即吊销前一设备的控制连接 generation 与媒体租约，丢弃迟到的音视频帧和延迟的 TEARDOWN 请求，并在锁同步下重置 GStreamer H.264 解码管线，避免参考帧污染。
