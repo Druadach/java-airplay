@@ -16,7 +16,19 @@ This project is modified based on [serezhka/java-airplay](https://github.com/ser
 
 ---
 
+## v1.2.4 Maintenance Update
+
+- Correct RTP audio timestamp and SSRC parsing. This is a protocol correctness fix, not an audio-quality or latency improvement.
+- Harden FFmpeg video process replacement and cleanup on disconnects and write failures. Built-in GStreamer video playback is unchanged.
+- Add regression tests for both source and packaged classes.
+
+YouTube / HLS direct playback integration is not included in v1.2.4; it remains deferred until upstream crash fixes are available and verified.
+
+---
+
 ## Download (EXE Packages)
+
+The current source version is **1.2.4**. Its binaries have not been published yet; the links below remain on the published **v1.2.3** packages.
 
 This repository provides two ready-to-run Windows distributions. Direct links:
 

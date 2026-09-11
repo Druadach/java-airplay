@@ -6,8 +6,8 @@
 
 | 文件 | 说明 |
 | --- | --- |
-| `AirPlayReceiver_Setup_1.2.3.exe` | 安装版：选目录、快捷方式、可卸载 |
-| `AirPlayReceiver_Portable_1.2.3.zip` | 便携版：解压即用，入口 `AirPlayReceiver.exe` |
+| `AirPlayReceiver_Setup_1.2.4.exe` | 安装版：选目录、快捷方式、可卸载 |
+| `AirPlayReceiver_Portable_1.2.4.zip` | 便携版：解压即用，入口 `AirPlayReceiver.exe` |
 
 安装包约 174 MB（源目录 436 MB），便携 ZIP 约 225 MB。
 
@@ -45,7 +45,7 @@ Inno Setup 未装时：`winget install --id JRSoftware.InnoSetup -e`
 
 ## 版本号
 
-版本号统一由仓库根目录的 `VERSION` 指定（当前为 `1.2.3`，不加 `v` 前缀）。
+版本号统一由仓库根目录的 `VERSION` 指定（当前为 `1.2.4`，不加 `v` 前缀）。
 `build_patch.ps1` 将它复制为启动器内的 `airplay-version.txt`，“关于”和 GitHub 更新检查读取这个资源；`installer.iss` 也直接读取同一个 `VERSION`，安装包文件名随之更新。
 
 发布前先修改 `VERSION`，重新构建并将新的启动器 JAR 同步到 `stage`，再生成安装包和便携包。GitHub Release 使用对应的 `vX.Y.Z` 标签并标记为正式版。
